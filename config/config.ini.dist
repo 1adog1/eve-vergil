@@ -1,0 +1,23 @@
+[NeuCore Authentication]
+AppID = 
+;When Using Environment Variables: ENV_STRUCTURE_OVERVIEW_NEUCORE_APP_ID - (REQUIRED)
+AppSecret = 
+;When Using Environment Variables: ENV_STRUCTURE_OVERVIEW_NEUCORE_APP_SECRET - (REQUIRED)
+AppURL = 
+;When Using Environment Variables: ENV_STRUCTURE_OVERVIEW_NEUCORE_APP_URL - (REQUIRED)
+;Please include a trailing / in the URL; for example https://neucore.com/
+LoginName = 
+;When Using Environment Variables: ENV_STRUCTURE_OVERVIEW_NEUCORE_LOGIN_NAME - (REQUIRED)
+
+[App]
+TargetAlliances = 
+;When Using Environment Variables: ENV_STRUCTURE_OVERVIEW_TARGET_ALLIANCES - (REQUIRED)
+;Target Alliances is a set of comma-separated alliance IDs in integer form. No comma is required for only one id.
+TargetCorps = 
+;When Using Environment Variables: ENV_STRUCTURE_OVERVIEW_TARGET_CORPS - (REQUIRED)
+;Target Corps is a set of comma-separated corporation IDs in integer form. No comma is required for only one id.
+WebhookPlatform = 
+;When Using Environment Variables: ENV_STRUCTURE_OVERVIEW_WEBHOOK_PLATFORM - (REQUIRED FOR REPORTS)
+;Slack or Discord
+WebhookURL = 
+;When Using Environment Variables: ENV_STRUCTURE_OVERVIEW_WEBHOOK_URL - (REQUIRED FOR REPORTS)
