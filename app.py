@@ -483,8 +483,6 @@ class App:
         platform, 
         url, 
         title, 
-        fuel_threshold,
-        ozone_threshold,
         include_fuel,
         include_liquid_ozone,
         include_pos,
@@ -516,7 +514,7 @@ class App:
             
             report_components += self.split_report(report_parts, "Unanchoring Alerts")
         
-        if include_fuel:
+        if include_fuel is not None:
             
             report_parts = [
                 report_template.format(
@@ -526,12 +524,12 @@ class App:
                     message="Fuel Expires: " + x["Fuel Expires"]
                 )
                 for y, x in self.structures.items()
-                if x["Fuel Expires"] is not None and (datetime.fromisoformat(x["Fuel Expires"]).timestamp() - time.time()) < (fuel_threshold * 60 * 60)
+                if x["Fuel Expires"] is not None and (datetime.fromisoformat(x["Fuel Expires"]).timestamp() - time.time()) < (include_fuel * 60 * 60)
             ]
             
             report_components += self.split_report(report_parts, "Fuel Alerts")
             
-        if include_liquid_ozone:
+        if include_liquid_ozone is not None:
             
             report_parts = [
                 report_template.format(
@@ -541,7 +539,7 @@ class App:
                     message="Remaining Ozone: {ozone:,}".format(ozone=x["Ozone"])
                 )
                 for y, x in self.structures.items()
-                if x["Ozone"] is not None and x["Ozone"] < ozone_threshold
+                if x["Ozone"] is not None and x["Ozone"] < include_liquid_ozone
             ]
             
             report_components += self.split_report(report_parts, "Liquid Ozone Alerts")

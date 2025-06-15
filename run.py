@@ -44,14 +44,16 @@ argument_parser.add_argument(
 argument_parser.add_argument(
     "-f", 
     "--fuel", 
-    help="include fuel notices in report", 
-    action="store_true"
+    help="minimum hours of fuel remaining to report", 
+    type=int,
+    default=None
 )
 argument_parser.add_argument(
     "-l", 
     "--liquid_ozone", 
-    help="include liquid ozone notices in report", 
-    action="store_true"
+    help="minimum liquid ozone in an ansiblex to report", 
+    type=int,
+    default=None
 )
 argument_parser.add_argument(
     "-o", 
@@ -125,8 +127,6 @@ if Path(configPath + "/config.ini").is_file():
     targetAlliances = str(config["App"]["TargetAlliances"]).replace(" ", "").split(",")
     targetCorps = str(config["App"]["TargetCorps"]).replace(" ", "").split(",")
     targetExclusions = str(config["App"]["TargetExclusions"]).replace(" ", "").split(",")
-    fuelAlertThreshold = int(config["App"]["FuelAlertThreshold"]) if config["App"]["FuelAlertThreshold"] not in (None, "") else 24
-    ozoneAlertThreshold = int(config["App"]["OzoneAlertThreshold"]) if config["App"]["OzoneAlertThreshold"] not in (None, "") else 100000
     reportTitle = config["App"]["ReportTitle"]
     webhookPlatform = config["App"]["WebhookPlatform"]
     webhookURL = config["App"]["WebhookURL"]
@@ -139,8 +139,6 @@ else:
         targetAlliances = str(os.environ["ENV_STRUCTURE_OVERVIEW_TARGET_ALLIANCES"]).replace(" ", "").split(",")
         targetCorps = str(os.environ["ENV_STRUCTURE_OVERVIEW_TARGET_CORPS"]).replace(" ", "").split(",")
         targetExclusions = str(os.environ["ENV_STRUCTURE_OVERVIEW_TARGET_EXCLUSIONS"]).replace(" ", "").split(",")
-        fuelAlertThreshold = int(os.environ["ENV_STRUCTURE_OVERVIEW_FUEL_ALERT_THRESHOLD"]) if "ENV_STRUCTURE_OVERVIEW_FUEL_ALERT_THRESHOLD" in os.environ else 24
-        ozoneAlertThreshold = int(os.environ["ENV_STRUCTURE_OVERVIEW_OZONE_ALERT_THRESHOLD"]) if "ENV_STRUCTURE_OVERVIEW_OZONE_ALERT_THRESHOLD" in os.environ else 100000
         reportTitle = os.environ["ENV_STRUCTURE_OVERVIEW_REPORT_TITLE"] if "ENV_STRUCTURE_OVERVIEW_REPORT_TITLE" in os.environ else None
         webhookPlatform = os.environ["ENV_STRUCTURE_OVERVIEW_WEBHOOK_PLATFORM"] if "ENV_STRUCTURE_OVERVIEW_WEBHOOK_PLATFORM" in os.environ else None
         webhookURL = os.environ["ENV_STRUCTURE_OVERVIEW_WEBHOOK_URL"] if "ENV_STRUCTURE_OVERVIEW_WEBHOOK_URL" in os.environ else None
@@ -168,8 +166,6 @@ if arguments.report:
         webhookPlatform, 
         webhookURL, 
         reportTitle, 
-        fuelAlertThreshold,
-        ozoneAlertThreshold,
         arguments.fuel,
         arguments.liquid_ozone,
         arguments.pos,

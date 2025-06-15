@@ -19,12 +19,6 @@ TargetCorps =
 TargetExclusions = 
 ;When Using Environment Variables: ENV_STRUCTURE_OVERVIEW_TARGET_EXCLUSIONS - (REQUIRED)
 ;Target Exclusions is a set of comma-separated corporation IDs in integer form. No comma is required for only one id.
-FuelAlertThreshold = 
-;When Using Environment Variables: ENV_STRUCTURE_OVERVIEW_FUEL_ALERT_THRESHOLD - (REQUIRED FOR REPORTS)
-;Hours remaining on fuel before a mention is made in the report - DEFAULT: 24
-OzoneAlertThreshold = 
-;When Using Environment Variables: ENV_STRUCTURE_OVERVIEW_OZONE_ALERT_THRESHOLD - (REQUIRED FOR REPORTS)
-;Hours remaining on Jump Gate Ozone before a mention is made in the report - DEFAULT: 100000
 ReportTitle = 
 ;When Using Environment Variables: ENV_STRUCTURE_OVERVIEW_REPORT_TITLE - (REQUIRED FOR REPORTS)
 ;The header for the report

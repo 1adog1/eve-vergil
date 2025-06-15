@@ -23,18 +23,18 @@ The app builds an aggregate structure list from the corporations configured. The
   * Alternatively, use the Environment Variables mentioned in the file.
 
 ## Run Options
-* `-r`, `--report`             Send a report to the configured channel
-* `-c`, `--csv CSV`            Export structures and starbases to csv with file prefix CSV
-* `-j`, `--json JSON`          Export structures and starbases to json with file prefix JSON
-* `-m`, `--missing MISSING`    Export missing target corporations to json with file name MISSING
-* `-i`, `--ids`                Include ids in export
-* `-f`, `--fuel`               Include fuel notices in report
-* `-l`, `--liquid_ozone`       Include liquid ozone notices in report
-* `-o`, `--offline_services`   Include offline service notices in report
-* `-e`, `--extractions`        Include extraction notices in report
-* `-s`, `--siege`              Include reinforcement notices in report
-* `-u`, `--unanchoring`        Include unanchoring notices in report
-* `-p`, `--pos`                Include starbase notices in report (works alongside the --offline_services, --siege, and --unanchoring flags)
-* `-a`, `--auth`               Include missing target corporations in report
-* `-t`, `--tickers       `     Uses corp tickers in report
-* `-n`, `--no_corp_names`      Hide structure owners in report
+* `-r`, `--report`                        Send a report to the configured channel
+* `-c`, `--csv CSV`                       Export structures and starbases to csv with file prefix CSV
+* `-j`, `--json JSON`                     Export structures and starbases to json with file prefix JSON
+* `-m`, `--missing MISSING`               Export missing target corporations to json with file name MISSING
+* `-i`, `--ids`                           Include ids in export
+* `-f`, `--fuel FUEL`                     Minimum hours of fuel remaining to report
+* `-l`, `--liquid_ozone LIQUID_OZONE`     Include liquid ozone notices in report
+* `-o`, `--offline_services`              Include offline service notices in report
+* `-e`, `--extractions`                   Include extraction notices in report
+* `-s`, `--siege`                         Include reinforcement notices in report
+* `-u`, `--unanchoring`                   Include unanchoring notices in report
+* `-p`, `--pos`                           Include starbase notices in report (works alongside the --offline_services, --siege, and --unanchoring flags)
+* `-a`, `--auth`                          Include missing target corporations in report
+* `-t`, `--tickers       `                Uses corp tickers in report
+* `-n`, `--no_corp_names`                 Hide structure owners in report
