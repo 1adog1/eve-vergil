@@ -22,6 +22,14 @@ class Methods(ESI_Base.Base):
             retries = (arguments["retries"] if "retries" in arguments else 0)
         )
         
+    def universe_moons(self, arguments):
+            
+        return self.makeRequest(
+            endpoint = "/universe/moons/{moon_id}/",
+            url = (self.esiURL + "latest/universe/moons/" + str(arguments["moon_id"]) + "/?datasource=tranquility"), 
+            retries = (arguments["retries"] if "retries" in arguments else 0)
+        )
+        
     def corporation_structures(self, arguments):
         
         page = (arguments["page"] if "page" in arguments else 1)
@@ -29,6 +37,28 @@ class Methods(ESI_Base.Base):
         return self.makeRequest(
             endpoint = "/corporations/{corporation_id}/structures/",
             url = (self.esiURL + "latest/corporations/" + str(arguments["corporation_id"]) + "/structures/?datasource=tranquility&page=" + str(page)), 
+            accessToken = self.accessToken, 
+            retries = (arguments["retries"] if "retries" in arguments else 0)
+        )
+        
+    def corporation_extractions(self, arguments):
+        
+        page = (arguments["page"] if "page" in arguments else 1)
+    
+        return self.makeRequest(
+            endpoint = "/corporation/{corporation_id}/mining/extractions/",
+            url = (self.esiURL + "latest/corporation/" + str(arguments["corporation_id"]) + "/mining/extractions/?datasource=tranquility&page=" + str(page)), 
+            accessToken = self.accessToken, 
+            retries = (arguments["retries"] if "retries" in arguments else 0)
+        )
+        
+    def corporation_starbases(self, arguments):
+        
+        page = (arguments["page"] if "page" in arguments else 1)
+    
+        return self.makeRequest(
+            endpoint = "/corporations/{corporation_id}/starbases/",
+            url = (self.esiURL + "latest/corporations/" + str(arguments["corporation_id"]) + "/starbases/?datasource=tranquility&page=" + str(page)), 
             accessToken = self.accessToken, 
             retries = (arguments["retries"] if "retries" in arguments else 0)
         )

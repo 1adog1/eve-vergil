@@ -19,8 +19,26 @@ class MethodRegister(ESI_Methods.Methods):
         )
         
         self.register(
+            endpoint = "/universe/moons/{moon_id}/", 
+            method = "universe_moons",
+            requiredArguments = ["moon_id"]
+        )
+        
+        self.register(
             endpoint = "/corporations/{corporation_id}/structures/", 
             method = "corporation_structures",
+            requiredArguments = ["corporation_id"]
+        )
+        
+        self.register(
+            endpoint = "/corporation/{corporation_id}/mining/extractions/", 
+            method = "corporation_extractions",
+            requiredArguments = ["corporation_id"]
+        )
+        
+        self.register(
+            endpoint = "/corporations/{corporation_id}/starbases/", 
+            method = "corporation_starbases",
             requiredArguments = ["corporation_id"]
         )
     

@@ -1,6 +1,6 @@
 # Eve Vergil
 
-Eve Vergil is a structure tracking and reporting application for Eve Online, designed for use with [neucore](https://github.com/tkhamez/neucore). 
+Eve Vergil is a structure status reporting application for Eve Online, designed for use with [neucore](https://github.com/tkhamez/neucore). 
 
 The app builds an aggregate structure list from the corporations configured. The list can then be dumped to a CSV or JSON file. A report of important information can also be generated and sent to a Discord or Slack channel.
 
@@ -15,6 +15,7 @@ The app builds an aggregate structure list from the corporations configured. The
     * `esi-corporations.read_structures.v1`
     * `esi-assets.read_corporation_assets.v1`
     * `esi-corporations.read_starbases.v1`
+    * `esi-industry.read_corporation_mining.v1`
     * `esi-characters.read_corporation_roles.v1`
     
 ## Setup
@@ -22,8 +23,16 @@ The app builds an aggregate structure list from the corporations configured. The
   * Alternatively, use the Environment Variables mentioned in the file.
 
 ## Run Options
-* `-r`, `--report`          Sends a structure report to the configured channel
-* `-c`, `--csv NAME`        Dumps structures to a .csv at NAME
-* `-j`, `--json NAME`       Dumps structures to a .json at NAME
-* `-u`, `--unknowns NAME`   Dumps list of corporations missing an authed character to a .json at NAME
-* `-i`, `--ids`             Includes IDs in Output
+* `-r`, `--report`             Send a report to the configured channel
+* `-c`, `--csv CSV`            Export structures and starbases to csv with file prefix CSV
+* `-j`, `--json JSON`          Export structures and starbases to json with file prefix JSON
+* `-m`, `--missing MISSING`    Export missing target corporations to json with file name MISSING
+* `-i`, `--ids`                Include ids in export
+* `-f`, `--fuel`               Include fuel notices in report
+* `-o`, `--offline_services`   Include offline service notices in report
+* `-e`, `--extractions`        Include extraction notices in report
+* `-s`, `--siege`              Include reinforcement notices in report
+* `-u`, `--unanchoring`        Include unanchoring notices in report
+* `-p`, `--pos`                Include starbase notices in report (works alongside the --offline_services, --siege, and --unanchoring flags)
+* `-a`, `--auth`               Include missing target corporations in report
+* `-n`, `--no_corp_names`      Hide structure owners in report

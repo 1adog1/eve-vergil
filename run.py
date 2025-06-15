@@ -29,16 +29,64 @@ argument_parser.add_argument(
     default=None
 )
 argument_parser.add_argument(
-    "-u", 
-    "--unknowns", 
-    help="unknowns file name", 
+    "-m", 
+    "--missing", 
+    help="missing corporations file name", 
     type=str,
     default=None
 )
 argument_parser.add_argument(
     "-i", 
     "--ids", 
-    help="include ids", 
+    help="include ids in export", 
+    action="store_true"
+)
+argument_parser.add_argument(
+    "-f", 
+    "--fuel", 
+    help="include fuel notices in report", 
+    action="store_true"
+)
+argument_parser.add_argument(
+    "-o", 
+    "--offline_services", 
+    help="include offline service notices in report", 
+    action="store_true"
+)
+argument_parser.add_argument(
+    "-e", 
+    "--extractions", 
+    help="include extraction notices in report", 
+    action="store_true"
+)
+argument_parser.add_argument(
+    "-s", 
+    "--siege", 
+    help="include reinforcement notices in report", 
+    action="store_true"
+)
+argument_parser.add_argument(
+    "-u", 
+    "--unanchoring", 
+    help="include unanchoring notices in report", 
+    action="store_true"
+)
+argument_parser.add_argument(
+    "-p", 
+    "--pos", 
+    help="include starbase notices in report", 
+    action="store_true"
+)
+argument_parser.add_argument(
+    "-a", 
+    "--auth", 
+    help="include missing target corporations in report", 
+    action="store_true"
+)
+argument_parser.add_argument(
+    "-n", 
+    "--no_corp_names", 
+    help="hide structure owners in report", 
     action="store_true"
 )
 arguments = argument_parser.parse_args()
@@ -64,6 +112,9 @@ if Path(configPath + "/config.ini").is_file():
 
     targetAlliances = str(config["App"]["TargetAlliances"]).replace(" ", "").split(",")
     targetCorps = str(config["App"]["TargetCorps"]).replace(" ", "").split(",")
+    targetExclusions = str(config["App"]["TargetExclusions"]).replace(" ", "").split(",")
+    fuelAlertThreshold = int(config["App"]["FuelAlertThreshold"]) if config["App"]["FuelAlertThreshold"] not in (None, "") else 24
+    reportTitle = config["App"]["ReportTitle"]
     webhookPlatform = config["App"]["WebhookPlatform"]
     webhookURL = config["App"]["WebhookURL"]
     coreInfo = config["NeuCore Authentication"]
@@ -74,6 +125,9 @@ else:
 
         targetAlliances = str(os.environ["ENV_STRUCTURE_OVERVIEW_TARGET_ALLIANCES"]).replace(" ", "").split(",")
         targetCorps = str(os.environ["ENV_STRUCTURE_OVERVIEW_TARGET_CORPS"]).replace(" ", "").split(",")
+        targetExclusions = str(os.environ["ENV_STRUCTURE_OVERVIEW_TARGET_EXCLUSIONS"]).replace(" ", "").split(",")
+        fuelAlertThreshold = int(os.environ["ENV_STRUCTURE_OVERVIEW_FUEL_ALERT_THRESHOLD"]) if "ENV_STRUCTURE_OVERVIEW_FUEL_ALERT_THRESHOLD" in os.environ else 24
+        reportTitle = os.environ["ENV_STRUCTURE_OVERVIEW_REPORT_TITLE"] if "ENV_STRUCTURE_OVERVIEW_REPORT_TITLE" in os.environ else None
         webhookPlatform = os.environ["ENV_STRUCTURE_OVERVIEW_WEBHOOK_PLATFORM"] if "ENV_STRUCTURE_OVERVIEW_WEBHOOK_PLATFORM" in os.environ else None
         webhookURL = os.environ["ENV_STRUCTURE_OVERVIEW_WEBHOOK_URL"] if "ENV_STRUCTURE_OVERVIEW_WEBHOOK_URL" in os.environ else None
         coreInfo = {
@@ -87,14 +141,26 @@ else:
 
         raise Warning("No Configuration File or Required Environment Variables Found!")
 
-processor = app.App(targetAlliances, targetCorps, coreInfo, arguments.ids)
+processor = app.App(targetAlliances, targetCorps, targetExclusions, coreInfo, arguments.ids)
 
 if arguments.json is not None:
     processor.export_json(arguments.json)
 if arguments.csv is not None:
     processor.export_csv(arguments.csv)
-if arguments.unknowns is not None:
-    processor.export_unknowns(arguments.unknowns)
-#TBA
+if arguments.missing is not None:
+    processor.export_unknowns(arguments.missing)
 if arguments.report:
-    processor.make_report(webhookPlatform, webhookURL)
+    processor.make_report(
+        webhookPlatform, 
+        webhookURL, 
+        reportTitle, 
+        fuelAlertThreshold,
+        arguments.fuel,
+        arguments.pos,
+        arguments.offline_services,
+        arguments.extractions,
+        arguments.siege,
+        arguments.unanchoring,
+        arguments.auth,
+        arguments.no_corp_names
+    )
