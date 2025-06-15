@@ -28,8 +28,8 @@ The app builds an aggregate structure list from the corporations configured. The
 * `-j`, `--json JSON`                     Export structures and starbases to json with file prefix JSON
 * `-m`, `--missing MISSING`               Export missing target corporations to json with file name MISSING
 * `-i`, `--ids`                           Include ids in export
-* `-f`, `--fuel FUEL`                     Minimum hours of fuel remaining to report
-* `-l`, `--liquid_ozone LIQUID_OZONE`     Include liquid ozone notices in report
+* `-f`, `--fuel FUEL`                     Report if less than FUEL hours of fuel remaining
+* `-l`, `--liquid_ozone LIQUID_OZONE`     Report if less than LIQUID_OZONE ozone remaining in an ansiblex
 * `-o`, `--offline_services`              Include offline service notices in report
 * `-e`, `--extractions`                   Include extraction notices in report
 * `-s`, `--siege`                         Include reinforcement notices in report
