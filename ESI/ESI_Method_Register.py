@@ -13,6 +13,12 @@ class MethodRegister(ESI_Methods.Methods):
         )
         
         self.register(
+            endpoint = "/corporations/{corporation_id}/", 
+            method = "corporation",
+            requiredArguments = ["corporation_id"]
+        )
+        
+        self.register(
             endpoint = "/universe/names/", 
             method = "universe_names",
             requiredArguments = ["ids"]

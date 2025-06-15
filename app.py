@@ -24,10 +24,28 @@ class Corporation:
         
         self.id = id
         self.name = None
+        self.ticker = None
         self.source = source_id
         self.structure_data = {}
         self.extractions = {}
         self.starbase_data = {}
+        
+        self.get_name()
+        
+    def get_name(self):
+        
+        esi_handler = ESI.Handler()
+        
+        name_request = esi_handler.call("/corporations/{corporation_id}/", corporation_id=self.id, retries=1)
+        
+        if name_request["Success"]:
+            
+            self.name = name_request["Data"]["name"]
+            self.ticker = name_request["Data"]["ticker"]
+            
+        else:
+            
+            raise Exception("CORPORATION NAME ERROR")
         
     def get_structures(self, auth_handler, login_name, geographic_data, type_data, include_ids):
         
@@ -58,6 +76,7 @@ class Corporation:
                             "Type Name": type_data[str(each_structure["type_id"])],
                             "Owner ID": self.id,
                             "Owner Name": self.name,
+                            "Owner Ticker": self.ticker,
                             "System ID": each_structure["system_id"],
                             "Region ID": geographic_data[str(each_structure["system_id"])]["region_id"],
                             "System Name": geographic_data[str(each_structure["system_id"])]["name"],
@@ -76,6 +95,7 @@ class Corporation:
                             "Name": (each_structure["name"] if "name" in each_structure else None),
                             "Type Name": type_data[str(each_structure["type_id"])],
                             "Owner Name": self.name,
+                            "Owner Ticker": self.ticker,
                             "System Name": geographic_data[str(each_structure["system_id"])]["name"],
                             "Region Name": geographic_data[str(each_structure["system_id"])]["region"],
                             "State": each_structure["state"],
@@ -159,6 +179,7 @@ class Corporation:
                             "Type Name": type_data[str(each_pos["type_id"])],
                             "Owner ID": self.id,
                             "Owner Name": self.name,
+                            "Owner Ticker": self.ticker,
                             "Moon ID": each_pos["moon_id"] if "moon_id" in each_pos else None,
                             "System ID": each_pos["system_id"],
                             "Region ID": geographic_data[str(each_pos["system_id"])]["region_id"],
@@ -173,6 +194,7 @@ class Corporation:
                         self.starbase_data[each_pos["starbase_id"]] = {
                             "Type Name": type_data[str(each_pos["type_id"])],
                             "Owner Name": self.name,
+                            "Owner Ticker": self.ticker,
                             "Moon ID": each_pos["moon_id"] if "moon_id" in each_pos else None,
                             "Moon Name": None,
                             "System Name": geographic_data[str(each_pos["system_id"])]["name"],
@@ -296,7 +318,6 @@ class App:
             if self.corporation_data[each_corporation] is not None:
                 
                 print("Checking " + str(each_corporation) + "...")
-                self.corporation_data[each_corporation].name = self.ids_to_parse[each_corporation]
                 self.corporation_data[each_corporation].get_structures(self.auth_handler, self.core_info["LoginName"], self.geographic_data, self.type_ids, include_ids)
                 self.corporation_data[each_corporation].get_extractions(self.auth_handler, self.core_info["LoginName"])
                 self.corporation_data[each_corporation].get_starbases(self.auth_handler, self.core_info["LoginName"], self.geographic_data, self.type_ids, include_ids)
@@ -387,6 +408,7 @@ class App:
         include_siege,
         include_unanchoring,
         include_auth,
+        use_tickers,
         no_corp_names
     ):
         
@@ -400,7 +422,7 @@ class App:
                 report_template.format(
                     name=x["Name"],
                     type=x["Type Name"],
-                    owner=x["Owner Name"],
+                    owner=x["Owner Ticker"] if use_tickers else x["Owner Name"],
                     message="Unanchors: " + x["Unanchor Timer"]
                 )
                 for y, x in self.structures.items()
@@ -415,7 +437,7 @@ class App:
                 report_template.format(
                     name=x["Name"],
                     type=x["Type Name"],
-                    owner=x["Owner Name"],
+                    owner=x["Owner Ticker"] if use_tickers else x["Owner Name"],
                     message="Fuel Expires: " + x["Fuel Expires"]
                 )
                 for y, x in self.structures.items()
@@ -430,7 +452,7 @@ class App:
                 report_template.format(
                     name=x["Name"],
                     type=x["Type Name"],
-                    owner=x["Owner Name"],
+                    owner=x["Owner Ticker"] if use_tickers else x["Owner Name"],
                     message=(x["State"].replace("_", " ").title() + " until " + x["RF Timer"])
                 )
                 for y, x in self.structures.items()
@@ -445,7 +467,7 @@ class App:
                 report_template.format(
                     name=x["Name"],
                     type=x["Type Name"],
-                    owner=x["Owner Name"],
+                    owner=x["Owner Ticker"] if use_tickers else x["Owner Name"],
                     message=("Offline Services: " + x["Offline Services"].replace("\n", ", "))
                 )
                 for y, x in self.structures.items()
@@ -460,7 +482,7 @@ class App:
                 report_template.format(
                     name=x["Name"],
                     type=x["Type Name"],
-                    owner=x["Owner Name"],
+                    owner=x["Owner Ticker"] if use_tickers else x["Owner Name"],
                     message="No Extraction Scheduled" if y not in self.extractions else "Auto-Detonation at: " + self.extractions[y]["Auto-Detonate Time"]
                 )
                 for y, x in self.structures.items()
@@ -475,7 +497,7 @@ class App:
                 report_template.format(
                     name=x["System Name"] + " - Unknown Moon",
                     type=x["Type Name"],
-                    owner=x["Owner Name"],
+                    owner=x["Owner Ticker"] if use_tickers else x["Owner Name"],
                     message=x["State"].title()
                 )
                 for y, x in self.starbases.items()
@@ -490,7 +512,7 @@ class App:
                 report_template.format(
                     name=x["Moon Name"],
                     type=x["Type Name"],
-                    owner=x["Owner Name"],
+                    owner=x["Owner Ticker"] if use_tickers else x["Owner Name"],
                     message="Reinforced until: " + x["RF Timer"]
                 )
                 for y, x in self.starbases.items()
@@ -505,7 +527,7 @@ class App:
                 report_template.format(
                     name=x["Moon Name"],
                     type=x["Type Name"],
-                    owner=x["Owner Name"],
+                    owner=x["Owner Ticker"] if use_tickers else x["Owner Name"],
                     message="Offline"
                 )
                 for y, x in self.starbases.items()

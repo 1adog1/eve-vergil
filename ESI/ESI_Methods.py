@@ -11,6 +11,14 @@ class Methods(ESI_Base.Base):
             url = (self.esiURL + "latest/alliances/" + str(arguments["alliance_id"]) + "/corporations/?datasource=tranquility"), 
             retries = (arguments["retries"] if "retries" in arguments else 0)
         )
+        
+    def corporation(self, arguments):
+            
+        return self.makeRequest(
+            endpoint = "/corporations/{corporation_id}/",
+            url = (self.esiURL + "latest/corporations/" + str(arguments["corporation_id"]) + "/?datasource=tranquility"), 
+            retries = (arguments["retries"] if "retries" in arguments else 0)
+        )
     
     def universe_names(self, arguments):
     

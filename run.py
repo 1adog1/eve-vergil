@@ -84,6 +84,12 @@ argument_parser.add_argument(
     action="store_true"
 )
 argument_parser.add_argument(
+    "-t", 
+    "--tickers", 
+    help="uses corp tickers in report", 
+    action="store_true"
+)
+argument_parser.add_argument(
     "-n", 
     "--no_corp_names", 
     help="hide structure owners in report", 
@@ -162,5 +168,6 @@ if arguments.report:
         arguments.siege,
         arguments.unanchoring,
         arguments.auth,
+        arguments.tickers,
         arguments.no_corp_names
     )
