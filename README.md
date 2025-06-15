@@ -29,6 +29,7 @@ The app builds an aggregate structure list from the corporations configured. The
 * `-m`, `--missing MISSING`    Export missing target corporations to json with file name MISSING
 * `-i`, `--ids`                Include ids in export
 * `-f`, `--fuel`               Include fuel notices in report
+* `-l`, `--liquid_ozone`       Include liquid ozone notices in report
 * `-o`, `--offline_services`   Include offline service notices in report
 * `-e`, `--extractions`        Include extraction notices in report
 * `-s`, `--siege`              Include reinforcement notices in report

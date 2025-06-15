@@ -70,3 +70,14 @@ class Methods(ESI_Base.Base):
             accessToken = self.accessToken, 
             retries = (arguments["retries"] if "retries" in arguments else 0)
         )
+        
+    def corporation_assets(self, arguments):
+        
+        page = (arguments["page"] if "page" in arguments else 1)
+    
+        return self.makeRequest(
+            endpoint = "/corporations/{corporation_id}/assets/",
+            url = (self.esiURL + "latest/corporations/" + str(arguments["corporation_id"]) + "/assets/?datasource=tranquility&page=" + str(page)), 
+            accessToken = self.accessToken, 
+            retries = (arguments["retries"] if "retries" in arguments else 0)
+        )

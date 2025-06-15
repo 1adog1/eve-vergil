@@ -48,6 +48,12 @@ argument_parser.add_argument(
     action="store_true"
 )
 argument_parser.add_argument(
+    "-l", 
+    "--liquid_ozone", 
+    help="include liquid ozone notices in report", 
+    action="store_true"
+)
+argument_parser.add_argument(
     "-o", 
     "--offline_services", 
     help="include offline service notices in report", 
@@ -120,6 +126,7 @@ if Path(configPath + "/config.ini").is_file():
     targetCorps = str(config["App"]["TargetCorps"]).replace(" ", "").split(",")
     targetExclusions = str(config["App"]["TargetExclusions"]).replace(" ", "").split(",")
     fuelAlertThreshold = int(config["App"]["FuelAlertThreshold"]) if config["App"]["FuelAlertThreshold"] not in (None, "") else 24
+    ozoneAlertThreshold = int(config["App"]["OzoneAlertThreshold"]) if config["App"]["OzoneAlertThreshold"] not in (None, "") else 100000
     reportTitle = config["App"]["ReportTitle"]
     webhookPlatform = config["App"]["WebhookPlatform"]
     webhookURL = config["App"]["WebhookURL"]
@@ -133,6 +140,7 @@ else:
         targetCorps = str(os.environ["ENV_STRUCTURE_OVERVIEW_TARGET_CORPS"]).replace(" ", "").split(",")
         targetExclusions = str(os.environ["ENV_STRUCTURE_OVERVIEW_TARGET_EXCLUSIONS"]).replace(" ", "").split(",")
         fuelAlertThreshold = int(os.environ["ENV_STRUCTURE_OVERVIEW_FUEL_ALERT_THRESHOLD"]) if "ENV_STRUCTURE_OVERVIEW_FUEL_ALERT_THRESHOLD" in os.environ else 24
+        ozoneAlertThreshold = int(os.environ["ENV_STRUCTURE_OVERVIEW_OZONE_ALERT_THRESHOLD"]) if "ENV_STRUCTURE_OVERVIEW_OZONE_ALERT_THRESHOLD" in os.environ else 100000
         reportTitle = os.environ["ENV_STRUCTURE_OVERVIEW_REPORT_TITLE"] if "ENV_STRUCTURE_OVERVIEW_REPORT_TITLE" in os.environ else None
         webhookPlatform = os.environ["ENV_STRUCTURE_OVERVIEW_WEBHOOK_PLATFORM"] if "ENV_STRUCTURE_OVERVIEW_WEBHOOK_PLATFORM" in os.environ else None
         webhookURL = os.environ["ENV_STRUCTURE_OVERVIEW_WEBHOOK_URL"] if "ENV_STRUCTURE_OVERVIEW_WEBHOOK_URL" in os.environ else None
@@ -161,7 +169,9 @@ if arguments.report:
         webhookURL, 
         reportTitle, 
         fuelAlertThreshold,
+        ozoneAlertThreshold,
         arguments.fuel,
+        arguments.liquid_ozone,
         arguments.pos,
         arguments.offline_services,
         arguments.extractions,

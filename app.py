@@ -29,6 +29,7 @@ class Corporation:
         self.structure_data = {}
         self.extractions = {}
         self.starbase_data = {}
+        self.fuel = {}
         
         self.get_name()
         
@@ -85,6 +86,8 @@ class Corporation:
                             "Fuel Expires": (each_structure["fuel_expires"] if "fuel_expires" in each_structure else None),
                             "Online Services": "\n".join([x["name"] for x in each_structure["services"] if x["state"] == "online"]) if "services" in each_structure else None,
                             "Offline Services": "\n".join([x["name"] for x in each_structure["services"] if x["state"] == "offline"]) if "services" in each_structure else None,
+                            "Fuel Blocks": None,
+                            "Ozone": 0 if each_structure["type_id"] == 35841 else None,
                             "Has Drill": ("services" in each_structure and {"name": "Moon Drilling", "state": "online"} in each_structure["services"]),
                             "RF Timer": (each_structure["state_timer_end"] if "state_timer_end" in each_structure else None),
                             "Reinforce Hour": (each_structure["reinforce_hour"] if "reinforce_hour" in each_structure else None),
@@ -102,6 +105,8 @@ class Corporation:
                             "Fuel Expires": (each_structure["fuel_expires"] if "fuel_expires" in each_structure else None),
                             "Online Services": "\n".join([x["name"] for x in each_structure["services"] if x["state"] == "online"]) if "services" in each_structure else None,
                             "Offline Services": "\n".join([x["name"] for x in each_structure["services"] if x["state"] == "offline"]) if "services" in each_structure else None,
+                            "Fuel Blocks": None,
+                            "Ozone": 0 if each_structure["type_id"] == 35841 else None,
                             "Has Drill": ("services" in each_structure and {"name": "Moon Drilling", "state": "online"} in each_structure["services"]),
                             "RF Timer": (each_structure["state_timer_end"] if "state_timer_end" in each_structure else None),
                             "Reinforce Hour": (each_structure["reinforce_hour"] if "reinforce_hour" in each_structure else None),
@@ -113,7 +118,7 @@ class Corporation:
                 raise Exception("STRUCTURES ERROR")
             
             current_page += 1
-            
+    
     def get_extractions(self, auth_handler, login_name):
         
         access_token = auth_handler.getAccessToken(self.source, login_name)
@@ -187,6 +192,8 @@ class Corporation:
                             "System Name": geographic_data[str(each_pos["system_id"])]["name"],
                             "Region Name": geographic_data[str(each_pos["system_id"])]["region"],
                             "State": each_pos["state"],
+                            "Fuel Blocks": None,
+                            "Strontium": 0,
                             "RF Timer": (each_pos["reinforced_until"] if "reinforced_until" in each_pos else None),
                             "Unanchored At": (each_pos["unanchor_at"] if "unanchor_at" in each_pos else None)
                         }
@@ -200,6 +207,8 @@ class Corporation:
                             "System Name": geographic_data[str(each_pos["system_id"])]["name"],
                             "Region Name": geographic_data[str(each_pos["system_id"])]["region"],
                             "State": each_pos["state"],
+                            "Fuel Blocks": None,
+                            "Strontium": 0,
                             "RF Timer": (each_pos["reinforced_until"] if "reinforced_until" in each_pos else None),
                             "Unanchored At": (each_pos["unanchor_at"] if "unanchor_at" in each_pos else None)
                         }
@@ -227,6 +236,79 @@ class Corporation:
             self.starbase_data[each_starbase]["Moon Name"] = moons_to_check[self.starbase_data[each_starbase]["Moon ID"]] if self.starbase_data[each_starbase]["Moon ID"] is not None else None
             if not include_ids:
                 del self.starbase_data[each_starbase]["Moon ID"]
+                
+    def get_fuel(self, auth_handler, login_name, type_data):
+        
+        fuel_types = {
+            16273: "Liquid Ozone",
+            16275: "Strontium Clathrates",
+            4246: "Fuel Block",
+            4247: "Fuel Block",
+            4051: "Fuel Block",
+            4312: "Fuel Block",
+        }
+        
+        current_page = 1
+        max_page = 1
+        
+        while (current_page <= max_page):
+            
+            access_token = auth_handler.getAccessToken(self.source, login_name)
+            
+            if access_token is None:
+                raise Exception("ACCESS TOKEN ERROR")
+            
+            esi_handler = ESI.Handler(access_token)
+            
+            fuel_request = esi_handler.call("/corporations/{corporation_id}/assets/", corporation_id=self.id, page=current_page, retries=1)
+            
+            if fuel_request["Success"]:
+                
+                max_page = int(fuel_request["Headers"]["X-Pages"])
+                
+                for each_asset in fuel_request["Data"]:
+                    
+                    if (each_asset["location_flag"] == "StructureFuel" or each_asset["location_id"] in self.starbase_data) and each_asset["type_id"] in fuel_types:
+                        
+                        if each_asset["location_id"] not in self.fuel:
+                            self.fuel[each_asset["location_id"]] = {}
+                            
+                        if each_asset["type_id"] not in self.fuel[each_asset["location_id"]]:
+                            self.fuel[each_asset["location_id"]][each_asset["type_id"]] = {"Name": type_data[str(each_asset["type_id"])], "Type": fuel_types[each_asset["type_id"]], "Quantity": 0}
+                        
+                        self.fuel[each_asset["location_id"]][each_asset["type_id"]]["Quantity"] += each_asset["quantity"]
+                
+            else:
+                
+                raise Exception("ASSETS ERROR")
+            
+            current_page += 1
+            
+        for each_structure in self.structure_data:
+            
+            if each_structure in self.fuel:
+                
+                self.structure_data[each_structure]["Fuel Blocks"] = "\n".join([
+                    "{quantity:,} {type}s".format(quantity=y["Quantity"], type=y["Name"]) 
+                    for x, y in self.fuel[each_structure].items()
+                    if fuel_types[x] == "Fuel Block"
+                ])
+                
+                if 16273 in self.fuel[each_structure] and self.structure_data[each_structure]["Ozone"] is not None:
+                    self.structure_data[each_structure]["Ozone"] += self.fuel[each_structure][16273]["Quantity"]
+                    
+        for each_starbase in self.starbase_data:
+            
+            if each_starbase in self.fuel:
+                
+                self.starbase_data[each_starbase]["Fuel Blocks"] = "\n".join([
+                    "{quantity:,} {type}s".format(quantity=y["Quantity"], type=y["Name"]) 
+                    for x, y in self.fuel[each_starbase].items()
+                    if fuel_types[x] == "Fuel Block"
+                ])
+                
+                if 16275 in self.fuel[each_starbase]:
+                    self.starbase_data[each_starbase]["Strontium"] += self.fuel[each_starbase][16275]["Quantity"]
 
 class App:
     
@@ -321,6 +403,7 @@ class App:
                 self.corporation_data[each_corporation].get_structures(self.auth_handler, self.core_info["LoginName"], self.geographic_data, self.type_ids, include_ids)
                 self.corporation_data[each_corporation].get_extractions(self.auth_handler, self.core_info["LoginName"])
                 self.corporation_data[each_corporation].get_starbases(self.auth_handler, self.core_info["LoginName"], self.geographic_data, self.type_ids, include_ids)
+                self.corporation_data[each_corporation].get_fuel(self.auth_handler, self.core_info["LoginName"], self.type_ids)
                 
                 self.structures = self.structures | self.corporation_data[each_corporation].structure_data
                 self.extractions = self.extractions | self.corporation_data[each_corporation].extractions
@@ -401,7 +484,9 @@ class App:
         url, 
         title, 
         fuel_threshold,
+        ozone_threshold,
         include_fuel,
+        include_liquid_ozone,
         include_pos,
         include_offline_services,
         include_extractions,
@@ -445,6 +530,21 @@ class App:
             ]
             
             report_components += self.split_report(report_parts, "Fuel Alerts")
+            
+        if include_liquid_ozone:
+            
+            report_parts = [
+                report_template.format(
+                    name=x["Name"],
+                    type=x["Type Name"],
+                    owner=x["Owner Ticker"] if use_tickers else x["Owner Name"],
+                    message="Remaining Ozone: {ozone:,}".format(ozone=x["Ozone"])
+                )
+                for y, x in self.structures.items()
+                if x["Ozone"] is not None and x["Ozone"] < ozone_threshold
+            ]
+            
+            report_components += self.split_report(report_parts, "Liquid Ozone Alerts")
             
         if include_siege:
             

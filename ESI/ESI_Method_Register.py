@@ -47,6 +47,12 @@ class MethodRegister(ESI_Methods.Methods):
             method = "corporation_starbases",
             requiredArguments = ["corporation_id"]
         )
+        
+        self.register(
+            endpoint = "/corporations/{corporation_id}/assets/", 
+            method = "corporation_assets",
+            requiredArguments = ["corporation_id"]
+        )
     
     def register(self, endpoint, method, requiredArguments):
     
