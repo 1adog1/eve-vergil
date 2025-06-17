@@ -37,7 +37,7 @@ class Corporation:
         
         esi_handler = ESI.Handler()
         
-        name_request = esi_handler.call("/corporations/{corporation_id}/", corporation_id=self.id, retries=1)
+        name_request = esi_handler.call("/corporations/{corporation_id}/", corporation_id=self.id, retries=2)
         
         if name_request["Success"]:
             
@@ -61,7 +61,7 @@ class Corporation:
         max_page = 1
         
         while (current_page <= max_page):
-            structures_request = esi_handler.call("/corporations/{corporation_id}/structures/", corporation_id=self.id, page=current_page, retries=1)
+            structures_request = esi_handler.call("/corporations/{corporation_id}/structures/", corporation_id=self.id, page=current_page, retries=2)
             
             if structures_request["Success"]:
                 
@@ -132,7 +132,7 @@ class Corporation:
         max_page = 1
         
         while (current_page <= max_page):
-            extractions_request = esi_handler.call("/corporation/{corporation_id}/mining/extractions/", corporation_id=self.id, page=current_page, retries=1)
+            extractions_request = esi_handler.call("/corporation/{corporation_id}/mining/extractions/", corporation_id=self.id, page=current_page, retries=2)
             
             if extractions_request["Success"]:
                 
@@ -169,7 +169,7 @@ class Corporation:
         max_page = 1
         
         while (current_page <= max_page):
-            starbase_request = esi_handler.call("/corporations/{corporation_id}/starbases/", corporation_id=self.id, page=current_page, retries=1)
+            starbase_request = esi_handler.call("/corporations/{corporation_id}/starbases/", corporation_id=self.id, page=current_page, retries=2)
             
             if starbase_request["Success"]:
                 
@@ -224,7 +224,7 @@ class Corporation:
             
         for each_moon in moons_to_check:
             
-            moon_request = esi_handler.call("/universe/moons/{moon_id}/", moon_id=each_moon, retries=1)
+            moon_request = esi_handler.call("/universe/moons/{moon_id}/", moon_id=each_moon, retries=2)
             
             if moon_request["Success"]:
                 moons_to_check[each_moon] = moon_request["Data"]["name"]
@@ -260,7 +260,7 @@ class Corporation:
             
             esi_handler = ESI.Handler(access_token)
             
-            fuel_request = esi_handler.call("/corporations/{corporation_id}/assets/", corporation_id=self.id, page=current_page, retries=1)
+            fuel_request = esi_handler.call("/corporations/{corporation_id}/assets/", corporation_id=self.id, page=current_page, retries=2)
             
             if fuel_request["Success"]:
                 
@@ -348,7 +348,7 @@ class App:
         
         for each_alliance in self.target_alliances:
             
-            corporations_request = self.esi_handler.call("/alliances/{alliance_id}/corporations/", alliance_id=each_alliance, retries=1)
+            corporations_request = self.esi_handler.call("/alliances/{alliance_id}/corporations/", alliance_id=each_alliance, retries=2)
             
             if corporations_request["Success"]:
                 self.corporations += corporations_request["Data"]
@@ -381,7 +381,7 @@ class App:
                 
     def get_names(self):
         
-        names_request = self.esi_handler.call("/universe/names/", ids=list(self.ids_to_parse.keys()), retries=1)
+        names_request = self.esi_handler.call("/universe/names/", ids=list(self.ids_to_parse.keys()), retries=2)
         
         if names_request["Success"]:
             
@@ -430,20 +430,28 @@ class App:
         
         print("Exporting CSVs...")
         
-        with open((file_name.removesuffix(".csv") + "_citadels.csv"), "w", newline='') as csv_file:
+        with open((file_name.removesuffix(".csv") + "_citadels.csv"), "w", newline="") as csv_file:
             fields = list(self.structures.values())[0].keys()
             csv_writer = DictWriter(csv_file, fieldnames=fields)
             
             csv_writer.writeheader()
             for each_structure in self.structures.values():
+                
+                for key, each_val in each_structure.items():
+                    each_structure[key] = (" " + each_val) if (isinstance(each_val, str) and each_val.startswith("-")) else each_val
+                
                 csv_writer.writerow(each_structure)
                 
-        with open((file_name.removesuffix(".csv") + "_starbases.csv"), "w", newline='') as csv_file:
+        with open((file_name.removesuffix(".csv") + "_starbases.csv"), "w", newline="") as csv_file:
             fields = list(self.starbases.values())[0].keys()
             csv_writer = DictWriter(csv_file, fieldnames=fields)
             
             csv_writer.writeheader()
             for each_starbase in self.starbases.values():
+                
+                for key, each_val in each_starbase.items():
+                    each_starbase[key] = (" " + each_val) if (isinstance(each_val, str) and each_val.startswith("-")) else each_val
+                
                 csv_writer.writerow(each_starbase)
         
     def export_unknowns(self, file_name):
