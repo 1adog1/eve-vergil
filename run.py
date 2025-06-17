@@ -15,6 +15,12 @@ argument_parser.add_argument(
     action="store_true"
 )
 argument_parser.add_argument(
+    "-b", 
+    "--boundaries", 
+    help="add begin/end boundaries to report", 
+    action="store_true"
+)
+argument_parser.add_argument(
     "-c", 
     "--csv", 
     help="csv file name", 
@@ -166,6 +172,7 @@ if arguments.report:
         webhookPlatform, 
         webhookURL, 
         reportTitle, 
+        arguments.boundaries,
         arguments.fuel,
         arguments.liquid_ozone,
         arguments.pos,

@@ -46,14 +46,19 @@ class Corporation:
             
         else:
             
-            raise Exception("CORPORATION NAME ERROR")
+            raise Exception(
+                "CORPORATION NAME ERROR\n\nRepsonse Data: {data}\n\nResponse Headers: {headers}".format(
+                    data=name_request["Data"],
+                    headers=name_request["Headers"]
+                )
+            )
         
     def get_structures(self, auth_handler, login_name, geographic_data, type_data, include_ids):
         
         access_token = auth_handler.getAccessToken(self.source, login_name)
         
         if access_token is None:
-            raise Exception("ACCESS TOKEN ERROR")
+            raise Exception("FAILED TO GET ACCESS TOKEN FROM NEUCORE FOR {source}".format(source=self.source))
         
         esi_handler = ESI.Handler(access_token)
         
@@ -115,7 +120,12 @@ class Corporation:
                 
             else:
                 
-                raise Exception("STRUCTURES ERROR")
+                raise Exception(
+                    "STRUCTURES ERROR\n\nRepsonse Data: {data}\n\nResponse Headers: {headers}".format(
+                        data=structures_request["Data"],
+                        headers=structures_request["Headers"]
+                    )
+                )
             
             current_page += 1
     
@@ -124,7 +134,7 @@ class Corporation:
         access_token = auth_handler.getAccessToken(self.source, login_name)
         
         if access_token is None:
-            raise Exception("ACCESS TOKEN ERROR")
+            raise Exception("FAILED TO GET ACCESS TOKEN FROM NEUCORE FOR {source}".format(source=self.source))
         
         esi_handler = ESI.Handler(access_token)
         
@@ -150,7 +160,12 @@ class Corporation:
                 
             else:
                 
-                raise Exception("EXTRACTIONS ERROR")
+                raise Exception(
+                    "EXTRACTIONS ERROR\n\nRepsonse Data: {data}\n\nResponse Headers: {headers}".format(
+                        data=extractions_request["Data"],
+                        headers=extractions_request["Headers"]
+                    )
+                )
             
             current_page += 1
         
@@ -159,7 +174,7 @@ class Corporation:
         access_token = auth_handler.getAccessToken(self.source, login_name)
         
         if access_token is None:
-            raise Exception("ACCESS TOKEN ERROR")
+            raise Exception("FAILED TO GET ACCESS TOKEN FROM NEUCORE FOR {source}".format(source=self.source))
         
         esi_handler = ESI.Handler(access_token)
         
@@ -218,7 +233,12 @@ class Corporation:
                 
             else:
                 
-                raise Exception("STARBASES ERROR")
+                raise Exception(
+                    "STARBASES ERROR\n\nRepsonse Data: {data}\n\nResponse Headers: {headers}".format(
+                        data=starbase_request["Data"],
+                        headers=starbase_request["Headers"]
+                    )
+                )
             
             current_page += 1
             
@@ -230,7 +250,12 @@ class Corporation:
                 moons_to_check[each_moon] = moon_request["Data"]["name"]
                 
             else:
-                raise Exception("MOONS ERROR")
+                raise Exception(
+                    "MOONS ERROR\n\nRepsonse Data: {data}\n\nResponse Headers: {headers}".format(
+                        data=moon_request["Data"],
+                        headers=moon_request["Headers"]
+                    )
+                )
                 
         for each_starbase in self.starbase_data:
             self.starbase_data[each_starbase]["Moon Name"] = moons_to_check[self.starbase_data[each_starbase]["Moon ID"]] if self.starbase_data[each_starbase]["Moon ID"] is not None else None
@@ -256,7 +281,7 @@ class Corporation:
             access_token = auth_handler.getAccessToken(self.source, login_name)
             
             if access_token is None:
-                raise Exception("ACCESS TOKEN ERROR")
+                raise Exception("FAILED TO GET ACCESS TOKEN FROM NEUCORE FOR {source}".format(source=self.source))
             
             esi_handler = ESI.Handler(access_token)
             
@@ -280,7 +305,12 @@ class Corporation:
                 
             else:
                 
-                raise Exception("ASSETS ERROR")
+                raise Exception(
+                    "ASSETS ERROR\n\nRepsonse Data: {data}\n\nResponse Headers: {headers}".format(
+                        data=fuel_request["Data"],
+                        headers=fuel_request["Headers"]
+                    )
+                )
             
             current_page += 1
             
@@ -354,7 +384,12 @@ class App:
                 self.corporations += corporations_request["Data"]
                 
             else:
-                raise Exception("CORPORATIONS ERROR")
+                raise Exception(
+                    "CORPORATIONS ERROR\n\nRepsonse Data: {data}\n\nResponse Headers: {headers}".format(
+                        data=corporations_request["Data"],
+                        headers=corporations_request["Headers"]
+                    )
+                )
                 
         self.corporations = [int(ids) for ids in self.corporations if str(ids) not in self.target_exclusions]
                 
@@ -391,7 +426,12 @@ class App:
             
         else:
             
-            raise Exception("NAMES ERROR")
+            raise Exception(
+                "NAMES ERROR\n\nRepsonse Data: {data}\n\nResponse Headers: {headers}".format(
+                    data=names_request["Data"],
+                    headers=names_request["Headers"]
+                )
+            )
             
     def process_corporations(self, include_ids):
         
@@ -491,6 +531,7 @@ class App:
         platform, 
         url, 
         title, 
+        include_boundaries,
         include_fuel,
         include_liquid_ozone,
         include_pos,
@@ -505,7 +546,10 @@ class App:
         
         report_template = "{name} ({type}) — {message}\n" if no_corp_names else "[{owner}] {name} ({type}) — {message}\n"
         
-        report_components = [f"*{title}*\n\n"]
+        report_components = []
+        
+        if include_boundaries:
+            report_components.append(f"*----- BEGIN {title} -----*\n\n")
         
         if include_unanchoring:
             
@@ -648,6 +692,9 @@ class App:
             
             if auth_string:
                 report_components.append(f"Target Corporations Not Authed\n```\n{auth_string}\n```")
+                
+        if include_boundaries:
+            report_components.append(f"*----- END {title} -----*\n\n")
         
         for each_message in report_components:
             relay = RelayTerminus(each_message, platform, url)

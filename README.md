@@ -24,6 +24,7 @@ The app builds an aggregate structure list from the corporations configured. The
 
 ## Run Options
 * `-r`, `--report`                        Send a report to the configured channel
+* `-b`, `--boundaries`                    Add BEGIN/END boundaries to report
 * `-c`, `--csv CSV`                       Export structures and starbases to csv with file prefix CSV
 * `-j`, `--json JSON`                     Export structures and starbases to json with file prefix JSON
 * `-m`, `--missing MISSING`               Export missing target corporations to json with file name MISSING
