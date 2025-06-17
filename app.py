@@ -347,7 +347,7 @@ class App:
         self.target_corporations = target_corporations
         self.target_alliances = target_alliances
         self.target_exclusions = target_exclusions
-        self.corporations = []
+        self.corporations = target_corporations
         self.corporation_data = {}
         
         self.auth_handler = ESI.NeucoreAuth(core_info["AppID"], core_info["AppSecret"], core_info["AppURL"])
