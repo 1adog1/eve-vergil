@@ -159,6 +159,14 @@ else:
 
         raise Warning("No Configuration File or Required Environment Variables Found!")
 
+#Cleanup of possible parsing issues
+if "" in targetAlliances:
+    targetAlliances.remove("")
+if "" in targetCorps:
+    targetCorps.remove("")
+if "" in targetExclusions:
+    targetExclusions.remove("")
+
 processor = app.App(targetAlliances, targetCorps, targetExclusions, coreInfo, arguments.ids)
 
 if arguments.json is not None:
