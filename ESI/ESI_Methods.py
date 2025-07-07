@@ -79,5 +79,6 @@ class Methods(ESI_Base.Base):
             endpoint = "/corporations/{corporation_id}/assets/",
             url = (self.esiURL + "latest/corporations/" + str(arguments["corporation_id"]) + "/assets/?datasource=tranquility&page=" + str(page)), 
             accessToken = self.accessToken, 
-            retries = (arguments["retries"] if "retries" in arguments else 0)
+            retries = (arguments["retries"] if "retries" in arguments else 0),
+            retryDelay = 5
         )

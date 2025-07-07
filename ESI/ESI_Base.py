@@ -1,5 +1,6 @@
 import json
 import requests
+import time
 
 class Base:
 
@@ -14,7 +15,8 @@ class Base:
         accessToken = None, 
         expectResponse = True, 
         successCodes = [], 
-        retries = 0
+        retries = 0,
+        retryDelay = 1
     ):
     
         responseData = {"Success": False, "Data": [], "Status Code": None, "Headers": None}
@@ -75,4 +77,8 @@ class Base:
                         pass
                     
                 return responseData
+                
+            else:
+                
+                time.sleep(retryDelay)
             
