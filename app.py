@@ -757,7 +757,7 @@ class App:
                     name=x.name,
                     type=x.type,
                     owner=x.owner_ticker if use_tickers else x.owner_name,
-                    message=("Offline Services: " + ",".join(x.offline_services))
+                    message=("Offline Services: " + ", ".join(x.offline_services))
                 )
                 for y, x in self.structures.items()
                 if x.offline_services
