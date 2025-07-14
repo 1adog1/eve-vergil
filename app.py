@@ -18,6 +18,157 @@ def dataFile(extraFolder):
 
     return(dataLocation)
 
+class UpwellStructure:
+
+    def __init__(
+        self,
+        id,
+        name,
+        type_id,
+        type_name,
+        owner_id,
+        owner_name,
+        owner_ticker,
+        system_id,
+        system_name,
+        region_id,
+        region_name,
+        state,
+        services,
+        online_services,
+        offline_services,
+        has_drill,
+        fuel_expiry,
+        timer,
+        unanchor_timer, 
+        reinforcement_hour,
+        ):
+
+        self.id = id
+        self.name = name
+        self.type_id = type_id
+        self.type = type_name
+        self.owner_id = owner_id
+        self.owner_name = owner_name
+        self.owner_ticker = owner_ticker
+        self.system_id = system_id
+        self.system = system_name
+        self.region_id = region_id
+        self.region = region_name
+        self.state = state
+        self.high_slots = {}
+        self.mid_slots = {}
+        self.low_slots = {}
+        self.rigs = {}
+        self.service_modules = {}
+        self.services = services
+        self.online_services = online_services
+        self.offline_services = offline_services
+        self.has_drill = has_drill
+        self.fuel = {}
+        self.ozone = 0
+        self.fuel_expiry = fuel_expiry
+        self.timer = timer
+        self.unanchor_timer = unanchor_timer
+        self.reinforcement_hour = reinforcement_hour
+
+    def export(self):
+
+        self.fitting = "[{type_name}, {name}]\n\n{lows}\n\n{mids}\n\n{highs}\n\n{rigs}\n\n{services}".format(
+            type_name = self.type,
+            name = self.name,
+            lows = "\n".join([y for x, y in sorted(self.low_slots.items())]),
+            mids = "\n".join([y for x, y in sorted(self.mid_slots.items())]),
+            highs = "\n".join([y for x, y in sorted(self.high_slots.items())]),
+            rigs = "\n".join([y for x, y in sorted(self.rigs.items())]),
+            services = "\n".join([y for x, y in sorted(self.service_modules.items())]),
+        )
+
+        return {
+            "Name": self.name,
+            "Type": self.type,
+            "Owner": self.owner_name,
+            "Owner Ticker": self.owner_ticker,
+            "System": self.system,
+            "Region": self.region,
+            "State": self.state,
+            "Fitting": self.fitting,
+            "Online Services": "\n".join(self.online_services),
+            "Offline Services": "\n".join(self.offline_services),
+            "Has Drill": self.has_drill,
+            "Fuel": "\n".join(["{quantity:,} {type_name}s".format(quantity=x["Quantity"], type_name=x["Name"]) for x in self.fuel.values()]),
+            "Ozone": self.ozone if self.type_id == 35841 else None,
+            "Fuel Expires": self.fuel_expiry,
+            "Timer": self.timer,
+            "Unanchor Timer": self.unanchor_timer,
+            "Reinforcement Hour": self.reinforcement_hour
+        }
+
+class Starbase:
+
+    def __init__(
+        self,
+        id,
+        moon_id,
+        moon,
+        type_id,
+        type_name,
+        owner_id,
+        owner_name,
+        owner_ticker,
+        system_id,
+        system_name,
+        region_id,
+        region_name,
+        state,
+        timer,
+        unanchor_timer
+    ):
+
+        self.id = id
+        self.moon_id = moon_id
+        self.moon = moon
+        self.type_id = type_id
+        self.type = type_name
+        self.owner_id = owner_id
+        self.owner_name = owner_name
+        self.owner_ticker = owner_ticker
+        self.system_id = system_id
+        self.system = system_name
+        self.region_id = region_id
+        self.region = region_name
+        self.state = state
+        self.fuel = {}
+        self.strontium = 0
+        self.timer = timer
+        self.unanchor_timer = unanchor_timer
+
+    def export(self):
+
+        return {
+            "Moon": self.moon,
+            "Type": self.type,
+            "Owner": self.owner_name,
+            "Owner Ticker": self.owner_ticker,
+            "System": self.system,
+            "Region": self.region,
+            "State": self.state,
+            "Fuel": "\n".join(["{quantity:,} {type_name}s".format(quantity=x["Quantity"], type_name=x["Name"]) for x in self.fuel.values()]),
+            "Strontium": self.strontium,
+            "Timer": self.timer,
+            "Unanchor Timer": self.unanchor_timer
+        }
+
+class Extraction:
+
+    def __init__(self, id, moon_id, start_time, end_time, auto_time):
+
+        self.id = id
+        self.moon_id = moon_id
+        self.start_time = start_time
+        self.end_time = end_time
+        self.auto_time = auto_time
+
 class Corporation:
     
     def __init__(self, id, source_id):
@@ -53,7 +204,7 @@ class Corporation:
                 )
             )
         
-    def get_structures(self, auth_handler, login_name, geographic_data, type_data, include_ids):
+    def get_structures(self, auth_handler, login_name, geographic_data, type_data):
         
         access_token = auth_handler.getAccessToken(self.source, login_name)
         
@@ -73,50 +224,29 @@ class Corporation:
                 max_page = int(structures_request["Headers"]["X-Pages"])
                 
                 for each_structure in structures_request["Data"]:
-                    
-                    if include_ids:
-                        self.structure_data[each_structure["structure_id"]] = {
-                            "ID": each_structure["structure_id"],
-                            "Name": (each_structure["name"] if "name" in each_structure else None),
-                            "Type ID": each_structure["type_id"],
-                            "Type Name": type_data[str(each_structure["type_id"])],
-                            "Owner ID": self.id,
-                            "Owner Name": self.name,
-                            "Owner Ticker": self.ticker,
-                            "System ID": each_structure["system_id"],
-                            "Region ID": geographic_data[str(each_structure["system_id"])]["region_id"],
-                            "System Name": geographic_data[str(each_structure["system_id"])]["name"],
-                            "Region Name": geographic_data[str(each_structure["system_id"])]["region"],
-                            "State": each_structure["state"],
-                            "Fuel Expires": (each_structure["fuel_expires"] if "fuel_expires" in each_structure else None),
-                            "Online Services": "\n".join([x["name"] for x in each_structure["services"] if x["state"] == "online"]) if "services" in each_structure else None,
-                            "Offline Services": "\n".join([x["name"] for x in each_structure["services"] if x["state"] == "offline"]) if "services" in each_structure else None,
-                            "Fuel Blocks": None,
-                            "Ozone": 0 if each_structure["type_id"] == 35841 else None,
-                            "Has Drill": ("services" in each_structure and {"name": "Moon Drilling", "state": "online"} in each_structure["services"]),
-                            "RF Timer": (each_structure["state_timer_end"] if "state_timer_end" in each_structure else None),
-                            "Reinforce Hour": (each_structure["reinforce_hour"] if "reinforce_hour" in each_structure else None),
-                            "Unanchor Timer": (each_structure["unanchors_at"] if "unanchors_at" in each_structure else None)
-                        }
-                    else:
-                        self.structure_data[each_structure["structure_id"]] = {
-                            "Name": (each_structure["name"] if "name" in each_structure else None),
-                            "Type Name": type_data[str(each_structure["type_id"])],
-                            "Owner Name": self.name,
-                            "Owner Ticker": self.ticker,
-                            "System Name": geographic_data[str(each_structure["system_id"])]["name"],
-                            "Region Name": geographic_data[str(each_structure["system_id"])]["region"],
-                            "State": each_structure["state"],
-                            "Fuel Expires": (each_structure["fuel_expires"] if "fuel_expires" in each_structure else None),
-                            "Online Services": "\n".join([x["name"] for x in each_structure["services"] if x["state"] == "online"]) if "services" in each_structure else None,
-                            "Offline Services": "\n".join([x["name"] for x in each_structure["services"] if x["state"] == "offline"]) if "services" in each_structure else None,
-                            "Fuel Blocks": None,
-                            "Ozone": 0 if each_structure["type_id"] == 35841 else None,
-                            "Has Drill": ("services" in each_structure and {"name": "Moon Drilling", "state": "online"} in each_structure["services"]),
-                            "RF Timer": (each_structure["state_timer_end"] if "state_timer_end" in each_structure else None),
-                            "Reinforce Hour": (each_structure["reinforce_hour"] if "reinforce_hour" in each_structure else None),
-                            "Unanchor Timer": (each_structure["unanchors_at"] if "unanchors_at" in each_structure else None)
-                        }
+
+                    self.structure_data[each_structure["structure_id"]] = UpwellStructure(
+                        id = each_structure["structure_id"],
+                        name = (each_structure["name"] if "name" in each_structure else None),
+                        type_id = each_structure["type_id"],
+                        type_name = type_data[str(each_structure["type_id"])],
+                        owner_id = self.id,
+                        owner_name = self.name,
+                        owner_ticker = self.ticker,
+                        system_id = each_structure["system_id"],
+                        system_name = geographic_data[str(each_structure["system_id"])]["name"],
+                        region_id = geographic_data[str(each_structure["system_id"])]["region_id"],
+                        region_name = geographic_data[str(each_structure["system_id"])]["region"],
+                        state = each_structure["state"],
+                        services = ([x["name"] for x in each_structure["services"]] if "services" in each_structure else None),
+                        online_services = ([x["name"] for x in each_structure["services"] if x["state"] == "online"] if "services" in each_structure else None),
+                        offline_services = ([x["name"] for x in each_structure["services"] if x["state"] == "offline"] if "services" in each_structure else None),
+                        has_drill = ("services" in each_structure and {"name": "Moon Drilling", "state": "online"} in each_structure["services"]),
+                        fuel_expiry = (each_structure["fuel_expires"] if "fuel_expires" in each_structure else None),
+                        timer = (each_structure["state_timer_end"] if "state_timer_end" in each_structure else None),
+                        unanchor_timer = (each_structure["unanchors_at"] if "unanchors_at" in each_structure else None),
+                        reinforcement_hour = (each_structure["reinforce_hour"] if "reinforce_hour" in each_structure else None)
+                    )
                 
             else:
                 
@@ -149,14 +279,14 @@ class Corporation:
                 max_page = int(extractions_request["Headers"]["X-Pages"])
                 
                 for each_extraction in extractions_request["Data"]:
-                    
-                    self.extractions[each_extraction["structure_id"]] = {
-                        "Structure ID": each_extraction["structure_id"],
-                        "Start Time": each_extraction["extraction_start_time"],
-                        "End Time": each_extraction["chunk_arrival_time"],
-                        "Auto-Detonate Time": each_extraction["natural_decay_time"],
-                        "Moon ID": each_extraction["moon_id"]
-                    }
+
+                    self.extractions[each_extraction["structure_id"]] = Extraction(
+                        id = each_extraction["structure_id"],
+                        moon_id = each_extraction["moon_id"],
+                        start_time = each_extraction["extraction_start_time"],
+                        end_time = each_extraction["chunk_arrival_time"],
+                        auto_time = each_extraction["natural_decay_time"]
+                    )
                 
             else:
                 
@@ -169,7 +299,7 @@ class Corporation:
             
             current_page += 1
         
-    def get_starbases(self, auth_handler, login_name, geographic_data, type_data, include_ids):
+    def get_starbases(self, auth_handler, login_name, geographic_data, type_data):
         
         access_token = auth_handler.getAccessToken(self.source, login_name)
         
@@ -177,9 +307,7 @@ class Corporation:
             raise Exception("FAILED TO GET ACCESS TOKEN FROM NEUCORE FOR {source}".format(source=self.source))
         
         esi_handler = ESI.Handler(access_token)
-        
-        moons_to_check = {}
-        
+                
         current_page = 1
         max_page = 1
         
@@ -191,45 +319,42 @@ class Corporation:
                 max_page = int(starbase_request["Headers"]["X-Pages"])
                 
                 for each_pos in starbase_request["Data"]:
-                    
-                    if include_ids:
-                        self.starbase_data[each_pos["starbase_id"]] = {
-                            "ID": each_pos["starbase_id"],
-                            "Type ID": each_pos["type_id"],
-                            "Type Name": type_data[str(each_pos["type_id"])],
-                            "Owner ID": self.id,
-                            "Owner Name": self.name,
-                            "Owner Ticker": self.ticker,
-                            "Moon ID": each_pos["moon_id"] if "moon_id" in each_pos else None,
-                            "System ID": each_pos["system_id"],
-                            "Region ID": geographic_data[str(each_pos["system_id"])]["region_id"],
-                            "Moon Name": None,
-                            "System Name": geographic_data[str(each_pos["system_id"])]["name"],
-                            "Region Name": geographic_data[str(each_pos["system_id"])]["region"],
-                            "State": each_pos["state"],
-                            "Fuel Blocks": None,
-                            "Strontium": 0,
-                            "RF Timer": (each_pos["reinforced_until"] if "reinforced_until" in each_pos else None),
-                            "Unanchored At": (each_pos["unanchor_at"] if "unanchor_at" in each_pos else None)
-                        }
-                    else:
-                        self.starbase_data[each_pos["starbase_id"]] = {
-                            "Type Name": type_data[str(each_pos["type_id"])],
-                            "Owner Name": self.name,
-                            "Owner Ticker": self.ticker,
-                            "Moon ID": each_pos["moon_id"] if "moon_id" in each_pos else None,
-                            "Moon Name": None,
-                            "System Name": geographic_data[str(each_pos["system_id"])]["name"],
-                            "Region Name": geographic_data[str(each_pos["system_id"])]["region"],
-                            "State": each_pos["state"],
-                            "Fuel Blocks": None,
-                            "Strontium": 0,
-                            "RF Timer": (each_pos["reinforced_until"] if "reinforced_until" in each_pos else None),
-                            "Unanchored At": (each_pos["unanchor_at"] if "unanchor_at" in each_pos else None)
-                        }
+
+                    if "moon_id" in each_pos:
+
+                        moon_request = esi_handler.call("/universe/moons/{moon_id}/", moon_id=each_pos["moon_id"], retries=2)
                         
-                    if "moon_id" in each_pos and each_pos["moon_id"] not in moons_to_check:
-                        moons_to_check[each_pos["moon_id"]] = None
+                        if moon_request["Success"]:
+                            moon_name = moon_request["Data"]["name"]
+                            
+                        else:
+                            raise Exception(
+                                "MOONS ERROR\n\nRepsonse Data: {data}\n\nResponse Headers: {headers}".format(
+                                    data=moon_request["Data"],
+                                    headers=moon_request["Headers"]
+                                )
+                            )
+                        
+                    else:
+                        moon_name = None
+
+                    self.starbase_data[each_pos["starbase_id"]] = Starbase(
+                        id = each_pos["starbase_id"],
+                        moon_id = each_pos["moon_id"] if "moon_id" in each_pos else None,
+                        moon = moon_name,
+                        type_id = each_pos["type_id"],
+                        type_name = type_data[str(each_pos["type_id"])],
+                        owner_id = self.id,
+                        owner_name = self.name,
+                        owner_ticker = self.ticker,
+                        system_id = each_pos["system_id"],
+                        system_name = geographic_data[str(each_pos["system_id"])]["name"],
+                        region_id = geographic_data[str(each_pos["system_id"])]["region_id"],
+                        region_name = geographic_data[str(each_pos["system_id"])]["region"],
+                        state = each_pos["state"],
+                        timer = (each_pos["reinforced_until"] if "reinforced_until" in each_pos else None),
+                        unanchor_timer = (each_pos["unanchor_at"] if "unanchor_at" in each_pos else None)
+                    )
                 
             else:
                 
@@ -241,38 +366,9 @@ class Corporation:
                 )
             
             current_page += 1
-            
-        for each_moon in moons_to_check:
-            
-            moon_request = esi_handler.call("/universe/moons/{moon_id}/", moon_id=each_moon, retries=2)
-            
-            if moon_request["Success"]:
-                moons_to_check[each_moon] = moon_request["Data"]["name"]
                 
-            else:
-                raise Exception(
-                    "MOONS ERROR\n\nRepsonse Data: {data}\n\nResponse Headers: {headers}".format(
-                        data=moon_request["Data"],
-                        headers=moon_request["Headers"]
-                    )
-                )
-                
-        for each_starbase in self.starbase_data:
-            self.starbase_data[each_starbase]["Moon Name"] = moons_to_check[self.starbase_data[each_starbase]["Moon ID"]] if self.starbase_data[each_starbase]["Moon ID"] is not None else None
-            if not include_ids:
-                del self.starbase_data[each_starbase]["Moon ID"]
-                
-    def get_fuel(self, auth_handler, login_name, type_data):
-        
-        fuel_types = {
-            16273: "Liquid Ozone",
-            16275: "Strontium Clathrates",
-            4246: "Fuel Block",
-            4247: "Fuel Block",
-            4051: "Fuel Block",
-            4312: "Fuel Block",
-        }
-        
+    def get_assets(self, auth_handler, login_name, type_data):
+
         current_page = 1
         max_page = 1
         
@@ -285,64 +381,88 @@ class Corporation:
             
             esi_handler = ESI.Handler(access_token)
             
-            fuel_request = esi_handler.call("/corporations/{corporation_id}/assets/", corporation_id=self.id, page=current_page, retries=2)
+            assets_request = esi_handler.call("/corporations/{corporation_id}/assets/", corporation_id=self.id, page=current_page, retries=2)
             
-            if fuel_request["Success"]:
+            if assets_request["Success"]:
                 
-                max_page = int(fuel_request["Headers"]["X-Pages"])
+                max_page = int(assets_request["Headers"]["X-Pages"])
                 
-                for each_asset in fuel_request["Data"]:
-                    
-                    if (each_asset["location_flag"] == "StructureFuel" or each_asset["location_id"] in self.starbase_data) and each_asset["type_id"] in fuel_types:
-                        
-                        if each_asset["location_id"] not in self.fuel:
-                            self.fuel[each_asset["location_id"]] = {}
-                            
-                        if each_asset["type_id"] not in self.fuel[each_asset["location_id"]]:
-                            self.fuel[each_asset["location_id"]][each_asset["type_id"]] = {"Name": type_data[str(each_asset["type_id"])], "Type": fuel_types[each_asset["type_id"]], "Quantity": 0}
-                        
-                        self.fuel[each_asset["location_id"]][each_asset["type_id"]]["Quantity"] += each_asset["quantity"]
+                for each_asset in assets_request["Data"]:
+
+                    if each_asset["location_id"] in self.structure_data:
+
+                        if each_asset["location_flag"].startswith("HiSlot"):
+
+                            slot = int(each_asset["location_flag"].removeprefix("HiSlot"))
+                            type_name = type_data[str(each_asset["type_id"])]
+                            self.structure_data[each_asset["location_id"]].high_slots[slot] = type_name
+
+                        if each_asset["location_flag"].startswith("MedSlot"):
+
+                            slot = int(each_asset["location_flag"].removeprefix("MedSlot"))
+                            type_name = type_data[str(each_asset["type_id"])]
+                            self.structure_data[each_asset["location_id"]].mid_slots[slot] = type_name
+
+                        if each_asset["location_flag"].startswith("LoSlot"):
+
+                            slot = int(each_asset["location_flag"].removeprefix("LoSlot"))
+                            type_name = type_data[str(each_asset["type_id"])]
+                            self.structure_data[each_asset["location_id"]].low_slots[slot] = type_name
+
+                        if each_asset["location_flag"].startswith("RigSlot"):
+
+                            slot = int(each_asset["location_flag"].removeprefix("RigSlot"))
+                            type_name = type_data[str(each_asset["type_id"])]
+                            self.structure_data[each_asset["location_id"]].rigs[slot] = type_name
+
+                        if each_asset["location_flag"].startswith("ServiceSlot"):
+
+                            slot = int(each_asset["location_flag"].removeprefix("ServiceSlot"))
+                            type_name = type_data[str(each_asset["type_id"])]
+                            self.structure_data[each_asset["location_id"]].service_modules[slot] = type_name
+
+                        if each_asset["location_flag"] == "StructureFuel":
+
+                            if each_asset["type_id"] == 16273:
+
+                                self.structure_data[each_asset["location_id"]].ozone += each_asset["quantity"]
+
+                            else:
+
+                                if each_asset["type_id"] not in self.structure_data[each_asset["location_id"]].fuel:
+
+                                    self.structure_data[each_asset["location_id"]].fuel[each_asset["type_id"]] = {"Name": type_data[str(each_asset["type_id"])], "Quantity": 0}
+
+                                self.structure_data[each_asset["location_id"]].fuel[each_asset["type_id"]]["Quantity"] += each_asset["quantity"]
+
+                    if each_asset["location_id"] in self.starbase_data:
+
+                        if each_asset["type_id"] == 16275:
+
+                            self.starbase_data[each_asset["location_id"]].strontium += each_asset["quantity"]
+
+                        else:
+
+                            if each_asset["type_id"] not in self.starbase_data[each_asset["location_id"]].fuel:
+
+                                self.starbase_data[each_asset["location_id"]].fuel[each_asset["type_id"]] = {"Name": type_data[str(each_asset["type_id"])], "Quantity": 0}
+
+                            self.starbase_data[each_asset["location_id"]].fuel[each_asset["type_id"]]["Quantity"] += each_asset["quantity"]
                 
             else:
                 
                 raise Exception(
                     "ASSETS ERROR\n\nRepsonse Data: {data}\n\nResponse Headers: {headers}".format(
-                        data=fuel_request["Data"],
-                        headers=fuel_request["Headers"]
+                        data=assets_request["Data"],
+                        headers=assets_request["Headers"]
                     )
                 )
             
             current_page += 1
-            
-        for each_structure in self.structure_data:
-            
-            if each_structure in self.fuel:
-                
-                self.structure_data[each_structure]["Fuel Blocks"] = "\n".join([
-                    "{quantity:,} {type}s".format(quantity=y["Quantity"], type=y["Name"]) 
-                    for x, y in self.fuel[each_structure].items()
-                    if fuel_types[x] == "Fuel Block"
-                ])
-                
-                if 16273 in self.fuel[each_structure] and self.structure_data[each_structure]["Ozone"] is not None:
-                    self.structure_data[each_structure]["Ozone"] += self.fuel[each_structure][16273]["Quantity"]
-                    
-        for each_starbase in self.starbase_data:
-            
-            if each_starbase in self.fuel:
-                
-                self.starbase_data[each_starbase]["Fuel Blocks"] = "\n".join([
-                    "{quantity:,} {type}s".format(quantity=y["Quantity"], type=y["Name"]) 
-                    for x, y in self.fuel[each_starbase].items()
-                    if fuel_types[x] == "Fuel Block"
-                ])
-                
-                if 16275 in self.fuel[each_starbase]:
-                    self.starbase_data[each_starbase]["Strontium"] += self.fuel[each_starbase][16275]["Quantity"]
 
 class App:
     
-    def __init__(self, target_alliances, target_corporations, target_exclusions, core_info, include_ids):
+    def __init__(self, target_alliances, target_corporations, target_exclusions, core_info):
         
         self.target_corporations = target_corporations
         self.target_alliances = target_alliances
@@ -364,7 +484,7 @@ class App:
         self.build_targets()
         self.get_valid_tokens()
         self.get_names()
-        self.process_corporations(include_ids)
+        self.process_corporations()
         
     def pull_static(self):
         
@@ -433,17 +553,17 @@ class App:
                 )
             )
             
-    def process_corporations(self, include_ids):
+    def process_corporations(self):
         
         for each_corporation in self.corporation_data:
             
             if self.corporation_data[each_corporation] is not None:
                 
                 print("Checking " + str(each_corporation) + "...")
-                self.corporation_data[each_corporation].get_structures(self.auth_handler, self.core_info["LoginName"], self.geographic_data, self.type_ids, include_ids)
+                self.corporation_data[each_corporation].get_structures(self.auth_handler, self.core_info["LoginName"], self.geographic_data, self.type_ids)
                 self.corporation_data[each_corporation].get_extractions(self.auth_handler, self.core_info["LoginName"])
-                self.corporation_data[each_corporation].get_starbases(self.auth_handler, self.core_info["LoginName"], self.geographic_data, self.type_ids, include_ids)
-                self.corporation_data[each_corporation].get_fuel(self.auth_handler, self.core_info["LoginName"], self.type_ids)
+                self.corporation_data[each_corporation].get_starbases(self.auth_handler, self.core_info["LoginName"], self.geographic_data, self.type_ids)
+                self.corporation_data[each_corporation].get_assets(self.auth_handler, self.core_info["LoginName"], self.type_ids)
                 
                 self.structures = self.structures | self.corporation_data[each_corporation].structure_data
                 self.extractions = self.extractions | self.corporation_data[each_corporation].extractions
@@ -453,29 +573,32 @@ class App:
                 
                 self.unknowns[each_corporation] = self.ids_to_parse[each_corporation]
                 
-        self.structures = dict(sorted(self.structures.items(), key=lambda x: (str(x[1]["Owner Name"]), str(x[1]["System Name"]))))
-        self.starbases = dict(sorted(self.starbases.items(), key=lambda x: (str(x[1]["Owner Name"]), str(x[1]["Moon Name"]))))
+        self.structures = dict(sorted(self.structures.items(), key=lambda x: (str(x[1].owner_name), str(x[1].name))))
+        self.starbases = dict(sorted(self.starbases.items(), key=lambda x: (str(x[1].owner_name), str(x[1].moon))))
                 
     def export_json(self, file_name):
         
         print("Exporting JSONs...")
         
         with open((file_name.removesuffix(".json") + "_citadels.json"), "w") as json_file:
-            json.dump(self.structures, json_file, indent=1)
+            json.dump({x: y.export() for x, y in self.structures.items()}, json_file, indent=1)
             
         with open((file_name.removesuffix(".json") + "_starbases.json"), "w") as json_file:
-            json.dump(self.starbases, json_file, indent=1)
+            json.dump({x: y.export() for x, y in self.starbases.items()}, json_file, indent=1)
         
     def export_csv(self, file_name):
         
         print("Exporting CSVs...")
+
+        structure_export_data = {x: y.export() for x, y in self.structures.items()}
+        starbase_export_data = {x: y.export() for x, y in self.starbases.items()}
         
         with open((file_name.removesuffix(".csv") + "_citadels.csv"), "w", newline="") as csv_file:
-            fields = list(self.structures.values())[0].keys()
+            fields = list(structure_export_data.values())[0].keys()
             csv_writer = DictWriter(csv_file, fieldnames=fields)
             
             csv_writer.writeheader()
-            for each_structure in self.structures.values():
+            for each_structure in structure_export_data.values():
                 
                 for key, each_val in each_structure.items():
                     each_structure[key] = (" " + each_val) if (isinstance(each_val, str) and each_val.startswith("-")) else each_val
@@ -483,11 +606,11 @@ class App:
                 csv_writer.writerow(each_structure)
                 
         with open((file_name.removesuffix(".csv") + "_starbases.csv"), "w", newline="") as csv_file:
-            fields = list(self.starbases.values())[0].keys()
+            fields = list(starbase_export_data.values())[0].keys()
             csv_writer = DictWriter(csv_file, fieldnames=fields)
             
             csv_writer.writeheader()
-            for each_starbase in self.starbases.values():
+            for each_starbase in starbase_export_data.values():
                 
                 for key, each_val in each_starbase.items():
                     each_starbase[key] = (" " + each_val) if (isinstance(each_val, str) and each_val.startswith("-")) else each_val
@@ -538,6 +661,7 @@ class App:
         include_offline_services,
         include_extractions,
         include_siege,
+        include_deploying,
         include_unanchoring,
         include_auth,
         use_tickers,
@@ -551,17 +675,32 @@ class App:
         if include_boundaries:
             report_components.append(f"*----- BEGIN {title} -----*\n\n")
         
+        if include_deploying:
+            
+            report_parts = [
+                report_template.format(
+                    name=x.name,
+                    type=x.type,
+                    owner=x.owner_ticker if use_tickers else x.owner_name,
+                    message="Anchors: " + x.timer
+                )
+                for y, x in self.structures.items()
+                if x.state == "anchoring" and x.timer is not None
+            ]
+            
+            report_components += self.split_report(report_parts, "Anchoring Alerts")
+
         if include_unanchoring:
             
             report_parts = [
                 report_template.format(
-                    name=x["Name"],
-                    type=x["Type Name"],
-                    owner=x["Owner Ticker"] if use_tickers else x["Owner Name"],
-                    message="Unanchors: " + x["Unanchor Timer"]
+                    name=x.name,
+                    type=x.type,
+                    owner=x.owner_ticker if use_tickers else x.owner_name,
+                    message="Unanchors: " + x.unanchor_timer
                 )
                 for y, x in self.structures.items()
-                if x["Unanchor Timer"] is not None
+                if x.unanchor_timer is not None
             ]
             
             report_components += self.split_report(report_parts, "Unanchoring Alerts")
@@ -570,13 +709,13 @@ class App:
             
             report_parts = [
                 report_template.format(
-                    name=x["Name"],
-                    type=x["Type Name"],
-                    owner=x["Owner Ticker"] if use_tickers else x["Owner Name"],
-                    message="Fuel Expires: " + x["Fuel Expires"]
+                    name=x.name,
+                    type=x.type,
+                    owner=x.owner_ticker if use_tickers else x.owner_name,
+                    message="Fuel Expires: " + x.fuel_expiry
                 )
                 for y, x in self.structures.items()
-                if x["Fuel Expires"] is not None and (datetime.fromisoformat(x["Fuel Expires"]).timestamp() - time.time()) < (include_fuel * 60 * 60)
+                if x.fuel_expiry is not None and (datetime.fromisoformat(x.fuel_expiry).timestamp() - time.time()) < (include_fuel * 60 * 60)
             ]
             
             report_components += self.split_report(report_parts, "Fuel Alerts")
@@ -585,13 +724,13 @@ class App:
             
             report_parts = [
                 report_template.format(
-                    name=x["Name"],
-                    type=x["Type Name"],
-                    owner=x["Owner Ticker"] if use_tickers else x["Owner Name"],
-                    message="Remaining Ozone: {ozone:,}".format(ozone=x["Ozone"])
+                    name=x.name,
+                    type=x.type,
+                    owner=x.owner_ticker if use_tickers else x.owner_name,
+                    message="Remaining Ozone: {ozone:,}".format(ozone=x.ozone)
                 )
                 for y, x in self.structures.items()
-                if x["Ozone"] is not None and x["Ozone"] < include_liquid_ozone
+                if x.type_id == 35841 and x.ozone < include_liquid_ozone
             ]
             
             report_components += self.split_report(report_parts, "Liquid Ozone Alerts")
@@ -600,13 +739,13 @@ class App:
             
             report_parts = [
                 report_template.format(
-                    name=x["Name"],
-                    type=x["Type Name"],
-                    owner=x["Owner Ticker"] if use_tickers else x["Owner Name"],
-                    message=(x["State"].replace("_", " ").title() + " until " + x["RF Timer"])
+                    name=x.name,
+                    type=x.type,
+                    owner=x.owner_ticker if use_tickers else x.owner_name,
+                    message=(x.state.replace("_", " ").title() + " until " + x.timer)
                 )
                 for y, x in self.structures.items()
-                if x["RF Timer"] is not None
+                if "reinforce" in x.state and x.timer is not None
             ]
             
             report_components += self.split_report(report_parts, "Siege Alerts")
@@ -615,13 +754,13 @@ class App:
             
             report_parts = [
                 report_template.format(
-                    name=x["Name"],
-                    type=x["Type Name"],
-                    owner=x["Owner Ticker"] if use_tickers else x["Owner Name"],
-                    message=("Offline Services: " + x["Offline Services"].replace("\n", ", "))
+                    name=x.name,
+                    type=x.type,
+                    owner=x.owner_ticker if use_tickers else x.owner_name,
+                    message=("Offline Services: " + ",".join(x.offline_services))
                 )
                 for y, x in self.structures.items()
-                if x["Offline Services"]
+                if x.offline_services
             ]
             
             report_components += self.split_report(report_parts, "Offline Service Alerts")
@@ -630,43 +769,58 @@ class App:
             
             report_parts = [
                 report_template.format(
-                    name=x["Name"],
-                    type=x["Type Name"],
-                    owner=x["Owner Ticker"] if use_tickers else x["Owner Name"],
-                    message="No Extraction Scheduled" if y not in self.extractions else "Auto-Detonation at: " + self.extractions[y]["Auto-Detonate Time"]
+                    name=x.name,
+                    type=x.type,
+                    owner=x.owner_ticker if use_tickers else x.owner_name,
+                    message="No Extraction Scheduled" if y not in self.extractions else "Auto-Detonation at: " + self.extractions[y].auto_time
                 )
                 for y, x in self.structures.items()
-                if x["Has Drill"] and (y not in self.extractions or datetime.fromisoformat(self.extractions[y]["End Time"]).timestamp() < time.time())
+                if x.has_drill and (y not in self.extractions or datetime.fromisoformat(self.extractions[y].end_time).timestamp() < time.time())
             ]
             
             report_components += self.split_report(report_parts, "Extraction Alerts")
             
+        if include_pos and include_deploying:
+            
+            report_parts = [
+                report_template.format(
+                    name=(x.moon if x.moon is not None else x.system + " - Unknown Moon"),
+                    type=x.type,
+                    owner=x.owner_ticker if use_tickers else x.owner_name,
+                    message=x.state.title()
+                )
+                for y, x in self.starbases.items()
+                if x.state == "onlining"
+            ]
+            
+            report_components += self.split_report(report_parts, "POS Onlining Alerts")
+
         if include_pos and include_unanchoring:
             
             report_parts = [
                 report_template.format(
-                    name=x["System Name"] + " - Unknown Moon",
-                    type=x["Type Name"],
-                    owner=x["Owner Ticker"] if use_tickers else x["Owner Name"],
-                    message=x["State"].title()
+                    name=(x.moon if x.moon is not None else x.system + " - Unknown Moon"),
+                    type=x.type,
+                    owner=x.owner_ticker if use_tickers else x.owner_name,
+                    message=x.state.title()
                 )
                 for y, x in self.starbases.items()
-                if x["State"] in ["onlining", "unanchoring"]
+                if x.state == "unanchoring"
             ]
             
-            report_components += self.split_report(report_parts, "POS State Change Alerts")
+            report_components += self.split_report(report_parts, "POS Unanchoring Alerts")
             
         if include_pos and include_siege:
             
             report_parts = [
                 report_template.format(
-                    name=x["Moon Name"],
-                    type=x["Type Name"],
-                    owner=x["Owner Ticker"] if use_tickers else x["Owner Name"],
-                    message="Reinforced until: " + x["RF Timer"]
+                    name=(x.moon if x.moon is not None else x.system + " - Unknown Moon"),
+                    type=x.type,
+                    owner=x.owner_ticker if use_tickers else x.owner_name,
+                    message="Reinforced until: " + x.timer
                 )
                 for y, x in self.starbases.items()
-                if x["RF Timer"] is not None
+                if x.timer is not None
             ]
             
             report_components += self.split_report(report_parts, "POS Siege Alerts")
@@ -675,13 +829,13 @@ class App:
             
             report_parts = [
                 report_template.format(
-                    name=x["Moon Name"],
-                    type=x["Type Name"],
-                    owner=x["Owner Ticker"] if use_tickers else x["Owner Name"],
+                    name=(x.moon if x.moon is not None else x.system + " - Unknown Moon"),
+                    type=x.type,
+                    owner=x.owner_ticker if use_tickers else x.owner_name,
                     message="Offline"
                 )
                 for y, x in self.starbases.items()
-                if x["State"] == "offline"
+                if x.state == "offline"
             ]
             
             report_components += self.split_report(report_parts, "POS Offline Alerts")

@@ -42,12 +42,6 @@ argument_parser.add_argument(
     default=None
 )
 argument_parser.add_argument(
-    "-i", 
-    "--ids", 
-    help="include ids in export", 
-    action="store_true"
-)
-argument_parser.add_argument(
     "-f", 
     "--fuel", 
     help="minimum hours of fuel remaining to report", 
@@ -77,6 +71,12 @@ argument_parser.add_argument(
     "-s", 
     "--siege", 
     help="include reinforcement notices in report", 
+    action="store_true"
+)
+argument_parser.add_argument(
+    "-d", 
+    "--deploying", 
+    help="include anchoring notices in report", 
     action="store_true"
 )
 argument_parser.add_argument(
@@ -167,7 +167,7 @@ if "" in targetCorps:
 if "" in targetExclusions:
     targetExclusions.remove("")
 
-processor = app.App(targetAlliances, targetCorps, targetExclusions, coreInfo, arguments.ids)
+processor = app.App(targetAlliances, targetCorps, targetExclusions, coreInfo)
 
 if arguments.json is not None:
     processor.export_json(arguments.json)
@@ -187,6 +187,7 @@ if arguments.report:
         arguments.offline_services,
         arguments.extractions,
         arguments.siege,
+        arguments.deploying,
         arguments.unanchoring,
         arguments.auth,
         arguments.tickers,
