@@ -1,0 +1,8 @@
+# config
+/config/config.ini
+
+# output
+output/
+
+# caches
+__pycache__/
