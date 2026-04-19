@@ -35,7 +35,7 @@ The app builds an aggregate structure list from the corporations configured. The
 * `-s`, `--siege`                         Include reinforcement notices in report
 * `-d`, `--deploying`                     Include anchoring notices in report
 * `-u`, `--unanchoring`                   Include unanchoring notices in report
-* `-p`, `--pos`                           Include starbase notices in report (works alongside the --offline_services, --siege, --deploying, and --unanchoring flags)
+* `-p`, `--pos`                           Include starbase notices in report (works alongside the --fuel, --offline_services, --siege, --deploying, and --unanchoring flags)
 * `-a`, `--auth`                          Include missing target corporations in report
 * `-t`, `--tickers`                       Uses corp tickers in report
 * `-n`, `--no_corp_names`                 Hide structure owners in report

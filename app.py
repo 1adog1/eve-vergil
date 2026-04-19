@@ -2,9 +2,12 @@ import inspect
 import os
 import json
 import time
+from math import floor
 
-from datetime import datetime
+from datetime import datetime, timedelta, UTC
 from csv import DictWriter
+
+reference_time = datetime.now(UTC)
 
 import ESI
 from Terminus import RelayTerminus
@@ -19,6 +22,12 @@ def dataFile(extraFolder):
     return(dataLocation)
 
 class UpwellStructure:
+
+    reagent_consumption = {
+        81826: {            # Metenox Moon Drill
+            81143: 200      # 200 Magmatic Gas per Hour
+        }
+    }
 
     def __init__(
         self,
@@ -68,6 +77,7 @@ class UpwellStructure:
         self.fuel = {}
         self.ozone = 0
         self.fuel_expiry = fuel_expiry
+        self.reagent_expiry = None
         self.timer = timer
         self.unanchor_timer = unanchor_timer
         self.reinforcement_hour = reinforcement_hour
@@ -99,12 +109,61 @@ class UpwellStructure:
             "Fuel": "\n".join(["{quantity:,} {type_name}s".format(quantity=x["Quantity"], type_name=x["Name"]) for x in self.fuel.values()]),
             "Ozone": self.ozone if self.type_id == 35841 else None,
             "Fuel Expires": self.fuel_expiry,
+            "Reagents Expire": self.reagent_expiry,
             "Timer": self.timer,
             "Unanchor Timer": self.unanchor_timer,
             "Reinforcement Hour": self.reinforcement_hour
         }
 
 class Starbase:
+
+    fuel_consumption = {
+        12235: {4247: 40},  # Amarr Control Tower                       40 Helium Fuel Blocks per Hour
+        20059: {4247: 20},  # Amarr Control Tower Medium                20 Helium Fuel Blocks per Hour
+        20060: {4247: 10},  # Amarr Control Tower Small                 10 Helium Fuel Blocks per Hour
+        27530: {4247: 36},  # Blood Control Tower                       36 Helium Fuel Blocks per Hour
+        27589: {4247: 18},  # Blood Control Tower Medium                18 Helium Fuel Blocks per Hour
+        27592: {4247: 9},   # Blood Control Tower Small                 9 Helium Fuel Blocks per Hour
+        27532: {4247: 32},  # Dark Blood Control Tower                  32 Helium Fuel Blocks per Hour
+        27591: {4247: 16},  # Dark Blood Control Tower Medium           16 Helium Fuel Blocks per Hour
+        27594: {4247: 8},   # Dark Blood Control Tower Small            8 Helium Fuel Blocks per Hour
+        27780: {4247: 36},  # Sansha Control Tower                      36 Helium Fuel Blocks per Hour
+        27782: {4247: 18},  # Sansha Control Tower Medium               18 Helium Fuel Blocks per Hour
+        27784: {4247: 9},   # Sansha Control Tower Small                9 Helium Fuel Blocks per Hour
+        27786: {4247: 32},  # True Sansha Control Tower                 32 Helium Fuel Blocks per Hour
+        27788: {4247: 16},  # True Sansha Control Tower Medium          16 Helium Fuel Blocks per Hour
+        27790: {4247: 8},   # True Sansha Control Tower Small           8 Helium Fuel Blocks per Hour
+
+        16213: {4051: 40},  # Caldari Control Tower                     40 Nitrogen Fuel Blocks per Hour
+        20061: {4051: 20},  # Caldari Control Tower Medium              20 Nitrogen Fuel Blocks per Hour
+        20062: {4051: 10},  # Caldari Control Tower Small               10 Nitrogen Fuel Blocks per Hour
+        27533: {4051: 36},  # Guristas Control Tower                    36 Nitrogen Fuel Blocks per Hour
+        27595: {4051: 18},  # Guristas Control Tower Medium             18 Nitrogen Fuel Blocks per Hour
+        27598: {4051: 9},   # Guristas Control Tower Small              9 Nitrogen Fuel Blocks per Hour
+        27535: {4051: 32},  # Dread Guristas Control Tower              32 Nitrogen Fuel Blocks per Hour
+        27597: {4051: 16},  # Dread Guristas Control Tower Medium       16 Nitrogen Fuel Blocks per Hour
+        27600: {4051: 8},   # Dread Guristas Control Tower Small        8 Nitrogen Fuel Blocks per Hour
+
+        12236: {4312: 40},  # Gallente Control Tower                    40 Oxygen Fuel Blocks per Hour
+        20063: {4312: 20},  # Gallente Control Tower Medium             20 Oxygen Fuel Blocks per Hour
+        20064: {4312: 10},  # Gallente Control Tower Small              10 Oxygen Fuel Blocks per Hour
+        27536: {4312: 36},  # Serpentis Control Tower                   36 Oxygen Fuel Blocks per Hour
+        27601: {4312: 18},  # Serpentis Control Tower Medium            18 Oxygen Fuel Blocks per Hour
+        27604: {4312: 9},   # Serpentis Control Tower Small             9 Oxygen Fuel Blocks per Hour
+        27538: {4312: 32},  # Shadow Control Tower                      32 Oxygen Fuel Blocks per Hour
+        27603: {4312: 16},  # Shadow Control Tower Medium               16 Oxygen Fuel Blocks per Hour
+        27606: {4312: 8},   # Shadow Control Tower Small                8 Oxygen Fuel Blocks per Hour
+
+        16214: {4246: 40},  # Minmatar Control Tower                    40 Hydrogen Fuel Blocks per Hour
+        20065: {4246: 20},  # Minmatar Control Tower Medium             20 Hydrogen Fuel Blocks per Hour
+        20066: {4246: 10},  # Minmatar Control Tower Small              10 Hydrogen Fuel Blocks per Hour
+        27539: {4246: 36},  # Angel Control Tower                       36 Hydrogen Fuel Blocks per Hour
+        27607: {4246: 18},  # Angel Control Tower Medium                18 Hydrogen Fuel Blocks per Hour
+        27610: {4246: 9},   # Angel Control Tower Small                 9 Hydrogen Fuel Blocks per Hour
+        27540: {4246: 32},  # Domination Control Tower                  32 Hydrogen Fuel Blocks per Hour
+        27609: {4246: 16},  # Domination Control Tower Medium           16 Hydrogen Fuel Blocks per Hour
+        27612: {4246: 8},   # Domination Control Tower Small            8 Hydrogen Fuel Blocks per Hour
+    }
 
     def __init__(
         self,
@@ -139,7 +198,9 @@ class Starbase:
         self.region = region_name
         self.state = state
         self.fuel = {}
+        self.fuel_expiry = None
         self.strontium = 0
+        self.strontium_hours = 0
         self.timer = timer
         self.unanchor_timer = unanchor_timer
 
@@ -154,7 +215,9 @@ class Starbase:
             "Region": self.region,
             "State": self.state,
             "Fuel": "\n".join(["{quantity:,} {type_name}s".format(quantity=x["Quantity"], type_name=x["Name"]) for x in self.fuel.values()]),
+            "Fuel Expires": self.fuel_expiry,
             "Strontium": self.strontium,
+            "Strontium Hours": self.strontium_hours,
             "Timer": self.timer,
             "Unanchor Timer": self.unanchor_timer
         }
@@ -180,7 +243,6 @@ class Corporation:
         self.structure_data = {}
         self.extractions = {}
         self.starbase_data = {}
-        self.fuel = {}
         
         self.get_name()
         
@@ -460,6 +522,63 @@ class Corporation:
             
             current_page += 1
 
+    def usage_calculations(self):
+
+        for each_structure in self.structure_data:
+
+            current = self.structure_data[each_structure]
+
+            # Reagent Usage
+            if current.online_services and current.type_id in current.reagent_consumption:
+                
+                minimum_time = None
+
+                for each_reagent in current.reagent_consumption[current.type_id]:
+
+                    if each_reagent in current.fuel:
+
+                        hours_remaining = floor(current.fuel[each_reagent]["Quantity"] / current.reagent_consumption[current.type_id][each_reagent])
+                        minimum_time = hours_remaining if (minimum_time is None or hours_remaining < minimum_time) else minimum_time
+
+                    else:
+
+                        minimum_time = 0
+
+                current.reagent_expiry = (reference_time + timedelta(hours=(minimum_time + 1))).replace(minute=0, second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        for each_starbase in self.starbase_data:
+
+            current = self.starbase_data[each_starbase]
+
+            # Fuel Usage
+            if current.state != "offline" and current.type_id in current.fuel_consumption:
+
+                hours_remaining = 0
+
+                for each_fuel in current.fuel_consumption[current.type_id]:
+
+                    if each_fuel in current.fuel:
+
+                        hours_remaining += floor(current.fuel[each_fuel]["Quantity"] / current.fuel_consumption[current.type_id][each_fuel])
+
+                current.fuel_expiry = (reference_time + timedelta(hours=(hours_remaining + 1))).replace(minute=0, second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            # Strontium Hours
+            if current.state != "reinforced":
+
+                strontium_consumption = None
+
+                if current.type.endswith("Control Tower"):
+                    strontium_consumption = 400
+                if current.type.endswith("Control Tower Medium"):
+                    strontium_consumption = 200
+                if current.type.endswith("Control Tower Small"):
+                    strontium_consumption = 100
+
+                if strontium_consumption is not None:
+
+                    current.strontium_hours = round((current.strontium / strontium_consumption), 3)
+
 class App:
     
     def __init__(self, target_alliances, target_corporations, target_exclusions, core_info):
@@ -564,6 +683,7 @@ class App:
                 self.corporation_data[each_corporation].get_extractions(self.auth_handler, self.core_info["LoginName"])
                 self.corporation_data[each_corporation].get_starbases(self.auth_handler, self.core_info["LoginName"], self.geographic_data, self.type_ids)
                 self.corporation_data[each_corporation].get_assets(self.auth_handler, self.core_info["LoginName"], self.type_ids)
+                self.corporation_data[each_corporation].usage_calculations()
                 
                 self.structures = self.structures | self.corporation_data[each_corporation].structure_data
                 self.extractions = self.extractions | self.corporation_data[each_corporation].extractions
@@ -719,6 +839,19 @@ class App:
             ]
             
             report_components += self.split_report(report_parts, "Fuel Alerts")
+
+            report_parts = [
+                report_template.format(
+                    name=x.name,
+                    type=x.type,
+                    owner=x.owner_ticker if use_tickers else x.owner_name,
+                    message="Reagents Expire: " + x.reagent_expiry
+                )
+                for y, x in self.structures.items()
+                if x.reagent_expiry is not None and (datetime.fromisoformat(x.reagent_expiry).timestamp() - time.time()) < (include_fuel * 60 * 60)
+            ]
+            
+            report_components += self.split_report(report_parts, "Reagent Alerts")
             
         if include_liquid_ozone is not None:
             
@@ -809,6 +942,21 @@ class App:
             ]
             
             report_components += self.split_report(report_parts, "POS Unanchoring Alerts")
+
+        if include_pos and include_fuel is not None:
+
+            report_parts = [
+                report_template.format(
+                    name=(x.moon if x.moon is not None else x.system + " - Unknown Moon"),
+                    type=x.type,
+                    owner=x.owner_ticker if use_tickers else x.owner_name,
+                    message="Fuel Expires: " + x.fuel_expiry
+                )
+                for y, x in self.starbases.items()
+                if x.fuel_expiry is not None and (datetime.fromisoformat(x.fuel_expiry).timestamp() - time.time()) < (include_fuel * 60 * 60)
+            ]
+            
+            report_components += self.split_report(report_parts, "POS Fuel Alerts")
             
         if include_pos and include_siege:
             
