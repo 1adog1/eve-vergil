@@ -8,7 +8,7 @@ class Methods(ESI_Base.Base):
             
         return self.makeRequest(
             endpoint = "/alliances/{alliance_id}/corporations/",
-            url = (self.esiURL + "latest/alliances/" + str(arguments["alliance_id"]) + "/corporations/?datasource=tranquility"), 
+            url = (self.esiURL + "alliances/" + str(arguments["alliance_id"]) + "/corporations/?datasource=tranquility"), 
             retries = (arguments["retries"] if "retries" in arguments else 0)
         )
         
@@ -16,7 +16,7 @@ class Methods(ESI_Base.Base):
             
         return self.makeRequest(
             endpoint = "/corporations/{corporation_id}/",
-            url = (self.esiURL + "latest/corporations/" + str(arguments["corporation_id"]) + "/?datasource=tranquility"), 
+            url = (self.esiURL + "corporations/" + str(arguments["corporation_id"]) + "/?datasource=tranquility"), 
             retries = (arguments["retries"] if "retries" in arguments else 0)
         )
     
@@ -24,7 +24,7 @@ class Methods(ESI_Base.Base):
     
         return self.makeRequest(
             endpoint = "/universe/names/",
-            url = (self.esiURL + "latest/universe/names/?datasource=tranquility"), 
+            url = (self.esiURL + "universe/names/?datasource=tranquility"), 
             method = "POST", 
             payload = arguments["ids"], 
             retries = (arguments["retries"] if "retries" in arguments else 0)
@@ -34,7 +34,7 @@ class Methods(ESI_Base.Base):
             
         return self.makeRequest(
             endpoint = "/universe/moons/{moon_id}/",
-            url = (self.esiURL + "latest/universe/moons/" + str(arguments["moon_id"]) + "/?datasource=tranquility"), 
+            url = (self.esiURL + "universe/moons/" + str(arguments["moon_id"]) + "/?datasource=tranquility"), 
             retries = (arguments["retries"] if "retries" in arguments else 0)
         )
         
@@ -44,7 +44,7 @@ class Methods(ESI_Base.Base):
     
         return self.makeRequest(
             endpoint = "/corporations/{corporation_id}/structures/",
-            url = (self.esiURL + "latest/corporations/" + str(arguments["corporation_id"]) + "/structures/?datasource=tranquility&page=" + str(page)), 
+            url = (self.esiURL + "corporations/" + str(arguments["corporation_id"]) + "/structures/?datasource=tranquility&page=" + str(page)), 
             accessToken = self.accessToken, 
             retries = (arguments["retries"] if "retries" in arguments else 0)
         )
@@ -55,7 +55,7 @@ class Methods(ESI_Base.Base):
     
         return self.makeRequest(
             endpoint = "/corporation/{corporation_id}/mining/extractions/",
-            url = (self.esiURL + "latest/corporation/" + str(arguments["corporation_id"]) + "/mining/extractions/?datasource=tranquility&page=" + str(page)), 
+            url = (self.esiURL + "corporation/" + str(arguments["corporation_id"]) + "/mining/extractions/?datasource=tranquility&page=" + str(page)), 
             accessToken = self.accessToken, 
             retries = (arguments["retries"] if "retries" in arguments else 0)
         )
@@ -66,7 +66,7 @@ class Methods(ESI_Base.Base):
     
         return self.makeRequest(
             endpoint = "/corporations/{corporation_id}/starbases/",
-            url = (self.esiURL + "latest/corporations/" + str(arguments["corporation_id"]) + "/starbases/?datasource=tranquility&page=" + str(page)), 
+            url = (self.esiURL + "corporations/" + str(arguments["corporation_id"]) + "/starbases/?datasource=tranquility&page=" + str(page)), 
             accessToken = self.accessToken, 
             retries = (arguments["retries"] if "retries" in arguments else 0)
         )
@@ -77,7 +77,7 @@ class Methods(ESI_Base.Base):
     
         return self.makeRequest(
             endpoint = "/corporations/{corporation_id}/assets/",
-            url = (self.esiURL + "latest/corporations/" + str(arguments["corporation_id"]) + "/assets/?datasource=tranquility&page=" + str(page)), 
+            url = (self.esiURL + "corporations/" + str(arguments["corporation_id"]) + "/assets/?datasource=tranquility&page=" + str(page)), 
             accessToken = self.accessToken, 
             retries = (arguments["retries"] if "retries" in arguments else 0),
             retryDelay = 5

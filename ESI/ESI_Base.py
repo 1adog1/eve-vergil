@@ -5,6 +5,7 @@ import time
 class Base:
 
     defaultSuccessCodes = [200, 204]
+    defaultCompatibilityDate = "2026-05-19"
         
     def makeRequest(
         self, 
@@ -13,6 +14,7 @@ class Base:
         method = "GET", 
         payload = None, 
         accessToken = None, 
+        compatibilityDate = None,
         expectResponse = True, 
         successCodes = [], 
         retries = 0,
@@ -25,7 +27,10 @@ class Base:
         
             requestMethod = getattr(requests, method.lower())
             
-            headers = {"accept": "application/json"}
+            headers = {
+                "accept": "application/json",
+                "X-Compatibility-Date": (compatibilityDate if compatibilityDate is not None else self.defaultCompatibilityDate)
+            }
             
             if accessToken is not None:
             

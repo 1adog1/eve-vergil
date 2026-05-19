@@ -2,7 +2,8 @@
 /config/config.ini
 
 # output
-output/
+output/*
+!output/.gitkeep
 
 # caches
 __pycache__/

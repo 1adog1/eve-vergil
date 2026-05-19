@@ -23,19 +23,46 @@ The app builds an aggregate structure list from the corporations configured. The
   * Alternatively, use the Environment Variables mentioned in the file.
 
 ## Run Options
-* `-r`, `--report`                        Send a report to the configured channel
-* `-b`, `--boundaries`                    Add BEGIN/END boundaries to report
-* `-c`, `--csv CSV`                       Export structures and starbases to csv with file prefix CSV
-* `-j`, `--json JSON`                     Export structures and starbases to json with file prefix JSON
-* `-m`, `--missing MISSING`               Export missing target corporations to json with file name MISSING
-* `-f`, `--fuel FUEL`                     Report if less than FUEL hours of fuel remaining
-* `-l`, `--liquid_ozone LIQUID_OZONE`     Report if less than LIQUID_OZONE ozone remaining in an ansiblex
-* `-o`, `--offline_services`              Include offline service notices in report
-* `-e`, `--extractions`                   Include extraction notices in report
-* `-s`, `--siege`                         Include reinforcement notices in report
-* `-d`, `--deploying`                     Include anchoring notices in report
-* `-u`, `--unanchoring`                   Include unanchoring notices in report
-* `-p`, `--pos`                           Include starbase notices in report (works alongside the --fuel, --offline_services, --siege, --deploying, and --unanchoring flags)
-* `-a`, `--auth`                          Include missing target corporations in report
-* `-t`, `--tickers`                       Uses corp tickers in report
-* `-n`, `--no_corp_names`                 Hide structure owners in report
+* `operation`
+  * Required argument setting the operation the app will preform:
+    * `report`
+    * `export`
+* `-b`, `--build_data DATA_TYPES`
+  * A space-separated list of data types to build, defaults to all:
+    * `citadels`
+    * `starbases`
+    * `missing` builds a list of corporations who were targeted but not authed
+* `-d`, `--directory DIRECTORY`
+  * The directory exports are sent to, defaults to the included `output` folder
+* `-n`, `--name_prefix NAME_PREFIX`
+  * A prefix to give to exported filenames, defaults to the current datetime `YYYY-MM-DD_hh-mm-ss`
+* `-e`, `--extensions EXTENSIONS`
+  * A space-separated list of file types to export:
+    * `csv`
+    * `json`
+* `-c`, `--citadel_reports CITADEL_REPORT_TYPES`
+  * A space-separated list of things to report for citadels:
+    * `fuel`
+    * `ozone`
+    * `offline_services`
+    * `extractions`
+    * `reinforcement`
+    * `anchoring`
+    * `unanchoring`
+* `-f`, `--fuel FUEL_THRESHOLD`
+  * A threshold of fuel in a Citadel or Starbase in hours remaining, below which a report is generated, defaults to `72`
+* `-l`, `--liquid_ozone LIQUID_OZONE_THRESHOLD`
+  * A threshold of liquid ozone in an Ansiblex, below which a report is generated, defaults to `100000`
+* `-p`, `--pos_reports POS_REPORT_TYPES`
+  * A space-separated list of things to report for Starbases:
+    * `fuel`
+    * `offline`
+    * `reinforcement`
+    * `anchoring`
+    * `unanchoring`
+* `-o`, `--report_options REPORT_OPTIONS`
+  * A space-separated list of other report options:
+    * `boundaries` Adds `BEGIN`/`END` messages surrounding the report
+    * `missing` Adds a report that lists corporations who were targeted but not authed
+    * `tickers` Tickers are used instead of full corporation names for structure owners
+    * `hide_owners` Owners are not shown next to structures

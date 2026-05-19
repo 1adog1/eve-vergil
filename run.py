@@ -4,112 +4,9 @@ import configparser
 import argparse
 
 from pathlib import Path
+from datetime import datetime, UTC
 
 import app
-
-argument_parser = argparse.ArgumentParser()
-argument_parser.add_argument(
-    "-r", 
-    "--report", 
-    help="send a report to the configured channel", 
-    action="store_true"
-)
-argument_parser.add_argument(
-    "-b", 
-    "--boundaries", 
-    help="add begin/end boundaries to report", 
-    action="store_true"
-)
-argument_parser.add_argument(
-    "-c", 
-    "--csv", 
-    help="csv file name", 
-    type=str,
-    default=None
-)
-argument_parser.add_argument(
-    "-j", 
-    "--json", 
-    help="json file name", 
-    type=str,
-    default=None
-)
-argument_parser.add_argument(
-    "-m", 
-    "--missing", 
-    help="missing corporations file name", 
-    type=str,
-    default=None
-)
-argument_parser.add_argument(
-    "-f", 
-    "--fuel", 
-    help="minimum hours of fuel remaining to report", 
-    type=int,
-    default=None
-)
-argument_parser.add_argument(
-    "-l", 
-    "--liquid_ozone", 
-    help="minimum liquid ozone in an ansiblex to report", 
-    type=int,
-    default=None
-)
-argument_parser.add_argument(
-    "-o", 
-    "--offline_services", 
-    help="include offline service notices in report", 
-    action="store_true"
-)
-argument_parser.add_argument(
-    "-e", 
-    "--extractions", 
-    help="include extraction notices in report", 
-    action="store_true"
-)
-argument_parser.add_argument(
-    "-s", 
-    "--siege", 
-    help="include reinforcement notices in report", 
-    action="store_true"
-)
-argument_parser.add_argument(
-    "-d", 
-    "--deploying", 
-    help="include anchoring notices in report", 
-    action="store_true"
-)
-argument_parser.add_argument(
-    "-u", 
-    "--unanchoring", 
-    help="include unanchoring notices in report", 
-    action="store_true"
-)
-argument_parser.add_argument(
-    "-p", 
-    "--pos", 
-    help="include starbase notices in report", 
-    action="store_true"
-)
-argument_parser.add_argument(
-    "-a", 
-    "--auth", 
-    help="include missing target corporations in report", 
-    action="store_true"
-)
-argument_parser.add_argument(
-    "-t", 
-    "--tickers", 
-    help="uses corp tickers in report", 
-    action="store_true"
-)
-argument_parser.add_argument(
-    "-n", 
-    "--no_corp_names", 
-    help="hide structure owners in report", 
-    action="store_true"
-)
-arguments = argument_parser.parse_args()
 
 #If you've moved your config.ini file, set this variable to the path of the folder containing it (no trailing slash).
 CONFIG_PATH_OVERRIDE = None
@@ -124,6 +21,82 @@ def dataFile(extraFolder):
     return(dataLocation)
 
 configPath = (CONFIG_PATH_OVERRIDE) if (CONFIG_PATH_OVERRIDE is not None) else (dataFile("/config"))
+
+argument_parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+argument_parser.add_argument(
+    "operation", 
+    help="the operation the app should perform", 
+    choices=["report", "export"]
+)
+argument_parser.add_argument(
+    "-b", 
+    "--build_data", 
+    help="the datasets to build for each corp", 
+    nargs="+",
+    choices=["citadels", "starbases", "sov", "missing"],
+    default=["citadels", "starbases", "sov", "missing"]
+)
+argument_parser.add_argument(
+    "-d", 
+    "--directory", 
+    help="the directory to place exported files in",
+    default=dataFile("/output")
+)
+argument_parser.add_argument(
+    "-n", 
+    "--name_prefix", 
+    help="the prefix to assign to the exported filenames",
+    default=datetime.now(UTC).strftime("%Y-%m-%d_%H-%M-%S")
+)
+argument_parser.add_argument(
+    "-e", 
+    "--extensions", 
+    help="the file types to export", 
+    nargs="+",
+    choices=["csv", "json"],
+    default=["csv", "json"]
+)
+argument_parser.add_argument(
+    "-c", 
+    "--citadel_reports", 
+    help="the citadel reports to generate", 
+    nargs="*",
+    choices=["fuel", "ozone", "offline_services", "extractions", "reinforcement", "anchoring", "unanchoring"],
+    default=[]
+)
+argument_parser.add_argument(
+    "-f", 
+    "--fuel", 
+    help="minimum hours of fuel remaining to report", 
+    type=int,
+    default=72
+)
+argument_parser.add_argument(
+    "-l", 
+    "--liquid_ozone", 
+    help="minimum liquid ozone in an ansiblex to report", 
+    type=int,
+    default=100000
+)
+argument_parser.add_argument(
+    "-p", 
+    "--pos_reports", 
+    help="the pos reports to generate", 
+    nargs="*",
+    choices=["fuel", "offline", "reinforcement", "anchoring", "unanchoring"],
+    default=[]
+)
+argument_parser.add_argument(
+    "-o", 
+    "--report_options", 
+    help="other report options", 
+    nargs="*",
+    choices=["boundaries", "missing", "tickers", "hide_owners"],
+    default=[]
+)
+
+arguments = argument_parser.parse_args()
 
 if Path(configPath + "/config.ini").is_file():
 
@@ -167,29 +140,26 @@ if "" in targetCorps:
 if "" in targetExclusions:
     targetExclusions.remove("")
 
-processor = app.App(targetAlliances, targetCorps, targetExclusions, coreInfo)
+processor = app.App(targetAlliances, targetCorps, targetExclusions, coreInfo, arguments.build_data)
 
-if arguments.json is not None:
-    processor.export_json(arguments.json)
-if arguments.csv is not None:
-    processor.export_csv(arguments.csv)
-if arguments.missing is not None:
-    processor.export_unknowns(arguments.missing)
-if arguments.report:
+if arguments.operation == "export":
+
+    if "json" in arguments.extensions:
+        processor.export_json(arguments.directory, arguments.name_prefix)
+    if "csv" in arguments.extensions:
+        processor.export_csv(arguments.directory, arguments.name_prefix)
+    if "missing" in arguments.build_data:
+        processor.export_unknowns(arguments.directory, arguments.name_prefix)
+
+if arguments.operation == "report":
+
     processor.make_report(
         webhookPlatform, 
         webhookURL, 
         reportTitle, 
-        arguments.boundaries,
+        arguments.citadel_reports,
+        arguments.pos_reports,
         arguments.fuel,
         arguments.liquid_ozone,
-        arguments.pos,
-        arguments.offline_services,
-        arguments.extractions,
-        arguments.siege,
-        arguments.deploying,
-        arguments.unanchoring,
-        arguments.auth,
-        arguments.tickers,
-        arguments.no_corp_names
+        arguments.report_options
     )
