@@ -82,3 +82,21 @@ class Methods(ESI_Base.Base):
             retries = (arguments["retries"] if "retries" in arguments else 0),
             retryDelay = 5
         )
+
+    def sov_hub_list(self, arguments):
+            
+        return self.makeRequest(
+            endpoint = "/corporations/{corporation_id}/structures/sovereignty-hubs/",
+            url = (self.esiURL + "corporations/" + str(arguments["corporation_id"]) + "/structures/sovereignty-hubs/?datasource=tranquility"), 
+            accessToken = self.accessToken, 
+            retries = (arguments["retries"] if "retries" in arguments else 0)
+        )
+    
+    def sov_hubs(self, arguments):
+            
+        return self.makeRequest(
+            endpoint = "/corporations/{corporation_id}/structures/sovereignty-hubs/{sovereignty_hub_id}/",
+            url = (self.esiURL + "corporations/" + str(arguments["corporation_id"]) + "/structures/sovereignty-hubs/" + str(arguments["sovereignty_hub_id"]) + "/?datasource=tranquility"), 
+            accessToken = self.accessToken, 
+            retries = (arguments["retries"] if "retries" in arguments else 0)
+        )

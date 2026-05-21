@@ -54,6 +54,18 @@ class MethodRegister(ESI_Methods.Methods):
             requiredArguments = ["corporation_id"]
         )
     
+        self.register(
+            endpoint = "/corporations/{corporation_id}/structures/sovereignty-hubs/", 
+            method = "sov_hub_list",
+            requiredArguments = ["corporation_id"]
+        )
+
+        self.register(
+            endpoint = "/corporations/{corporation_id}/structures/sovereignty-hubs/{sovereignty_hub_id}/", 
+            method = "sov_hubs",
+            requiredArguments = ["corporation_id", "sovereignty_hub_id"]
+        )
+
     def register(self, endpoint, method, requiredArguments):
     
         self.methodList[endpoint] = {"Name": method, "Required Arguments": requiredArguments}

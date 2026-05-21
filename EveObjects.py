@@ -208,3 +208,112 @@ class Extraction:
         self.start_time = start_time
         self.end_time = end_time
         self.auto_time = auto_time
+
+class SovHub:
+
+    def __init__(
+        self, 
+        id, 
+        owner_id,
+        owner_name,
+        owner_ticker,
+        system_id, 
+        system, 
+        region_id, 
+        region, 
+        fuel_acl_id, 
+        reagent_bay,
+        reagent_usage, 
+        reagent_expirations, 
+        resources, 
+        workforce_configuration, 
+        configured_import_sources,
+        configured_export,
+        workforce_state, 
+        current_import_sources,
+        current_export,
+        upgrades
+    ):
+        
+        self.id = id
+        self.owner_id = owner_id
+        self.owner_name = owner_name
+        self.owner_ticker = owner_ticker
+
+        self.system_id = system_id
+        self.system = system
+        self.region_id = region_id
+        self.region = region
+        self.fuel_acl_id = fuel_acl_id
+        
+        self.reagent_bay = reagent_bay
+        self.reagent_usage = reagent_usage
+        self.reagent_expirations = reagent_expirations
+        self.next_expiring_reagent = min(self.reagent_expirations.values(), key=lambda x: x["Hours Remaining"]) if self.reagent_expirations else {"Name": None, "Hours Remaining": None, "Expires": None}
+
+        self.allocated_power = resources["power"]["allocated"]
+        self.available_power = resources["power"]["available"]
+        self.allocated_workforce = resources["workforce"]["allocated"]
+        self.available_workforce = resources["workforce"]["available"]
+
+        self.workforce_configuration = workforce_configuration
+        self.configured_import_sources = configured_import_sources
+        self.configured_export = configured_export
+        self.workforce_state = workforce_state
+        self.current_import_sources = current_import_sources
+        self.current_export = current_export
+
+        self.online_upgrades = {
+            x: y
+            for x, y in upgrades.items()
+            if y["State"] == "Online"
+        }
+        self.offline_upgrades = {
+            x: y
+            for x, y in upgrades.items()
+            if y["State"] == "Offline"
+        }
+        self.low_power_upgrades = {
+            x: y
+            for x, y in upgrades.items()
+            if y["State"] in ["Low", "Pending", "Unspecified"]
+        }
+
+    def export(self):
+
+        if self.workforce_configuration == "import":
+            configured_workforce = "\n".join(["{amount:,} FROM {system}".format(system=x["Name"], amount=x["Amount"]) for x in self.configured_import_sources.values()])
+        elif self.workforce_configuration == "export":
+            configured_workforce = "{amount:,} TO {system}".format(system=self.configured_export["Name"], amount=self.configured_export["Amount"])
+        else:
+            configured_workforce = None
+
+        if self.workforce_state == "import":
+            current_workforce = "\n".join(["{amount:,} FROM {system}".format(system=x["Name"], amount=x["Amount"]) for x in self.current_import_sources.values()])
+        elif self.workforce_state == "export":
+            current_workforce = "{amount:,} TO {system}".format(system=self.current_export["Name"], amount=self.current_export["Amount"])
+        else:
+            current_workforce = None
+
+        return {
+            "Owner": self.owner_name,
+            "Owner Ticker": self.owner_ticker,
+            "System": self.system,
+            "Region": self.region,
+            "Online Upgrades": "\n".join([x["Name"] for x in self.online_upgrades.values()]),
+            "Offline Upgrades": "\n".join([x["Name"] for x in self.offline_upgrades.values()]),
+            "Low Power Upgrades": "\n".join([x["Name"] for x in self.low_power_upgrades.values()]),
+            "Reagents": "\n".join(["{quantity:,} {type_name}".format(quantity=x["Quantity"], type_name=x["Name"]) for x in self.reagent_bay.values()]),
+            "Reagent Usage": "\n".join(["{usage:,} {type_name} per hour".format(usage=x["Usage"], type_name=x["Name"]) for x in self.reagent_usage.values()]),
+            "Reagent Expirations": "\n".join(["{type_name}: {expiry}".format(expiry=x["Expires"], type_name=x["Name"]) for x in self.reagent_expirations.values()]),
+            "Next Expiring": self.next_expiring_reagent["Name"],
+            "Next Expires": self.next_expiring_reagent["Expires"],
+            "Total Power": self.available_power,
+            "Remaining Power": (self.available_power - self.allocated_power),
+            "Total Workforce": self.available_workforce,
+            "Remaining Workforce": (self.available_workforce - self.allocated_workforce),
+            "Workforce Configuration": self.workforce_configuration,
+            "Configured Flow": configured_workforce,
+            "Workforce State": self.workforce_state,
+            "Current Flow": current_workforce
+        }

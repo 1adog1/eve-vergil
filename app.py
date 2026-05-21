@@ -37,6 +37,7 @@ class App:
         self.structures = {}
         self.extractions = {}
         self.starbases = {}
+        self.sov = {}
         self.unknowns = {}
         
         self.pull_static()
@@ -127,6 +128,9 @@ class App:
                 if "starbases" in data_types:
                     self.corporation_data[each_corporation].get_starbases(self.auth_handler, self.core_info["LoginName"], self.geographic_data, self.type_ids)
 
+                if "sov" in data_types:
+                    self.corporation_data[each_corporation].get_sov(self.auth_handler, self.core_info["LoginName"], self.geographic_data, self.type_ids)
+
                 if "citadels" in data_types or "starbases" in data_types:
                     self.corporation_data[each_corporation].get_assets(self.auth_handler, self.core_info["LoginName"], self.type_ids)
                     self.corporation_data[each_corporation].usage_calculations()
@@ -134,6 +138,7 @@ class App:
                 self.structures = self.structures | self.corporation_data[each_corporation].structure_data
                 self.extractions = self.extractions | self.corporation_data[each_corporation].extractions
                 self.starbases = self.starbases | self.corporation_data[each_corporation].starbase_data
+                self.sov = self.sov | self.corporation_data[each_corporation].sov_data
                 
             elif "missing" in data_types:
                 
@@ -141,6 +146,7 @@ class App:
                 
         self.structures = dict(sorted(self.structures.items(), key=lambda x: (str(x[1].owner_name), str(x[1].name))))
         self.starbases = dict(sorted(self.starbases.items(), key=lambda x: (str(x[1].owner_name), str(x[1].moon))))
+        self.sov = dict(sorted(self.sov.items(), key=lambda x: (str(x[1].owner_name), str(x[1].region), str(x[1].system))))
                 
     def export_json(self, directory, file_prefix):
         
@@ -157,6 +163,12 @@ class App:
                 json.dump({x: y.export() for x, y in self.starbases.items()}, json_file, indent=1)
         else:
             print("No starbases found, skipping export.")
+
+        if self.sov:
+            with open((directory + "/" + file_prefix + "_sov.json"), "w") as json_file:
+                json.dump({x: y.export() for x, y in self.sov.items()}, json_file, indent=1)
+        else:
+            print("No sov found, skipping export.")
         
     def export_csv(self, directory, file_prefix):
         
@@ -164,6 +176,7 @@ class App:
 
         structure_export_data = {x: y.export() for x, y in self.structures.items()}
         starbase_export_data = {x: y.export() for x, y in self.starbases.items()}
+        sov_export_data = {x: y.export() for x, y in self.sov.items()}
         
         if structure_export_data:
             with open((directory + "/" + file_prefix + "_citadels.csv"), "w", newline="") as csv_file:
@@ -195,6 +208,21 @@ class App:
                     csv_writer.writerow(each_starbase)
         else:
             print("No starbases found, skipping export.")
+
+        if sov_export_data:    
+            with open((directory + "/" + file_prefix + "_sov.csv"), "w", newline="") as csv_file:
+                fields = list(sov_export_data.values())[0].keys()
+                csv_writer = DictWriter(csv_file, fieldnames=fields)
+                
+                csv_writer.writeheader()
+                for each_sov_hub in sov_export_data.values():
+                    
+                    for key, each_val in each_sov_hub.items():
+                        each_sov_hub[key] = (" " + each_val) if (isinstance(each_val, str) and each_val.startswith("-")) else each_val
+                    
+                    csv_writer.writerow(each_sov_hub)
+        else:
+            print("No sov found, skipping export.")
         
     def export_unknowns(self, directory, file_prefix):
         
@@ -239,7 +267,9 @@ class App:
         title, 
         citadel_report_types,
         pos_report_types,
+        sov_report_types,
         fuel_threshold,
+        reagent_threshold,
         ozone_threshold,
         other_report_options
     ):
@@ -296,6 +326,8 @@ class App:
             
             report_components += self.split_report(report_parts, "Fuel Alerts")
 
+        if "reagents" in citadel_report_types:
+
             report_parts = [
                 report_template.format(
                     name=x.name,
@@ -304,7 +336,7 @@ class App:
                     message="Reagents Expire: " + x.reagent_expiry
                 )
                 for y, x in self.structures.items()
-                if x.reagent_expiry is not None and (datetime.fromisoformat(x.reagent_expiry).timestamp() - time.time()) < (fuel_threshold * 60 * 60)
+                if x.reagent_expiry is not None and (datetime.fromisoformat(x.reagent_expiry).timestamp() - time.time()) < (reagent_threshold * 60 * 60)
             ]
             
             report_components += self.split_report(report_parts, "Reagent Alerts")
@@ -443,6 +475,37 @@ class App:
             ]
             
             report_components += self.split_report(report_parts, "POS Offline Alerts")
+
+        if "reagents" in sov_report_types:
+
+            report_parts = [
+                report_template.format(
+                    name=x.system,
+                    type="Sovereignty Hub",
+                    owner=x.owner_ticker if ("tickers" in other_report_options) else x.owner_name,
+                    message=z["Name"] + " Expires: " + z["Expires"]
+                )
+                for y, x in self.sov.items()
+                for z in x.reagent_expirations.values()
+                if (datetime.fromisoformat(z["Expires"]).timestamp() - time.time()) < (reagent_threshold * 60 * 60)
+            ]
+            
+            report_components += self.split_report(report_parts, "Sov Reagent Alerts")
+
+        if "low_power_services" in sov_report_types:
+            
+            report_parts = [
+                report_template.format(
+                    name=x.system,
+                    type="Sovereignty Hub",
+                    owner=x.owner_ticker if ("tickers" in other_report_options) else x.owner_name,
+                    message=("Low Power Upgrades: " + ", ".join([z["Name"] for z in x.low_power_upgrades.values()])),
+                )
+                for y, x in self.sov.items()
+                if x.low_power_upgrades
+            ]
+            
+            report_components += self.split_report(report_parts, "Sov Low Power Service Alerts")
             
         if ("missing" in other_report_options):
             

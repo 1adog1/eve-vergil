@@ -62,13 +62,20 @@ argument_parser.add_argument(
     "--citadel_reports", 
     help="the citadel reports to generate", 
     nargs="*",
-    choices=["fuel", "ozone", "offline_services", "extractions", "reinforcement", "anchoring", "unanchoring"],
+    choices=["fuel", "reagents", "ozone", "offline_services", "extractions", "reinforcement", "anchoring", "unanchoring"],
     default=[]
 )
 argument_parser.add_argument(
     "-f", 
     "--fuel", 
     help="minimum hours of fuel remaining to report", 
+    type=int,
+    default=72
+)
+argument_parser.add_argument(
+    "-r", 
+    "--reagents", 
+    help="minimum hours of reagents remaining to report", 
     type=int,
     default=72
 )
@@ -85,6 +92,14 @@ argument_parser.add_argument(
     help="the pos reports to generate", 
     nargs="*",
     choices=["fuel", "offline", "reinforcement", "anchoring", "unanchoring"],
+    default=[]
+)
+argument_parser.add_argument(
+    "-s", 
+    "--sov_reports", 
+    help="the sov reports to generate", 
+    nargs="*",
+    choices=["reagents", "low_power_services"],
     default=[]
 )
 argument_parser.add_argument(
@@ -159,7 +174,9 @@ if arguments.operation == "report":
         reportTitle, 
         arguments.citadel_reports,
         arguments.pos_reports,
+        arguments.sov_reports,
         arguments.fuel,
+        arguments.reagents,
         arguments.liquid_ozone,
         arguments.report_options
     )

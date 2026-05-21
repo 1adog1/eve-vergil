@@ -17,6 +17,7 @@ The app builds an aggregate structure list from the corporations configured. The
     * `esi-corporations.read_starbases.v1`
     * `esi-industry.read_corporation_mining.v1`
     * `esi-characters.read_corporation_roles.v1`
+    * `esi-structures.read_corporation.v1`
     
 ## Setup
 * Rename the Configuration File in `/config/config.ini.dist` to `/config/config.ini` and setup as needed. 
@@ -31,6 +32,7 @@ The app builds an aggregate structure list from the corporations configured. The
   * A space-separated list of data types to build, defaults to all:
     * `citadels`
     * `starbases`
+    * `sov`
     * `missing` builds a list of corporations who were targeted but not authed
 * `-d`, `--directory DIRECTORY`
   * The directory exports are sent to, defaults to the included `output` folder
@@ -43,6 +45,7 @@ The app builds an aggregate structure list from the corporations configured. The
 * `-c`, `--citadel_reports CITADEL_REPORT_TYPES`
   * A space-separated list of things to report for citadels:
     * `fuel`
+    * `reagents`
     * `ozone`
     * `offline_services`
     * `extractions`
@@ -60,6 +63,10 @@ The app builds an aggregate structure list from the corporations configured. The
     * `reinforcement`
     * `anchoring`
     * `unanchoring`
+* `-s`, `--sov_reports SOV_REPORT_TYPES`
+  * A space-separated list of things to report for Sov Hubs:
+    * `reagents`
+    * `low_power_services`
 * `-o`, `--report_options REPORT_OPTIONS`
   * A space-separated list of other report options:
     * `boundaries` Adds `BEGIN`/`END` messages surrounding the report

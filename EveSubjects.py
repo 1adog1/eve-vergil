@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, UTC
 from math import floor
 
 import ESI
-from EveObjects import UpwellStructure, Starbase, Extraction
+from EveObjects import UpwellStructure, Starbase, SovHub, Extraction
 
 reference_time = datetime.now(UTC)
 
@@ -17,6 +17,7 @@ class Corporation:
         self.structure_data = {}
         self.extractions = {}
         self.starbase_data = {}
+        self.sov_data = {}
         
         self.get_name()
         
@@ -202,6 +203,185 @@ class Corporation:
                 )
             
             current_page += 1
+
+    def get_sov(self, auth_handler, login_name, geographic_data, type_data):
+
+        access_token = auth_handler.getAccessToken(self.source, login_name)
+        
+        if access_token is None:
+            raise Exception("FAILED TO GET ACCESS TOKEN FROM NEUCORE FOR {source}".format(source=self.source))
+        
+        esi_handler = ESI.Handler(access_token)
+
+        sov_hub_list_request = esi_handler.call("/corporations/{corporation_id}/structures/sovereignty-hubs/", corporation_id=self.id, retries=2)
+
+        if sov_hub_list_request["Success"]:
+
+            sov_hub_list = [x["id"] for x in sov_hub_list_request["Data"]["sovereignty_hubs"]]
+
+        else:
+            
+            raise Exception(
+                "SOV HUB LIST ERROR\n\nRepsonse Data: {data}\n\nResponse Headers: {headers}".format(
+                    data=sov_hub_list_request["Data"],
+                    headers=sov_hub_list_request["Headers"]
+                )
+            )
+        
+        for each_sov_hub in sov_hub_list:
+
+            # We could be making quite a few of these requests
+            access_token = auth_handler.getAccessToken(self.source, login_name)
+            
+            if access_token is None:
+                raise Exception("FAILED TO GET ACCESS TOKEN FROM NEUCORE FOR {source}".format(source=self.source))
+            
+            esi_handler = ESI.Handler(access_token)
+
+            sov_hub_request = esi_handler.call("/corporations/{corporation_id}/structures/sovereignty-hubs/{sovereignty_hub_id}/", corporation_id=self.id, sovereignty_hub_id=each_sov_hub, retries=2)
+
+            if sov_hub_request["Success"]:
+                
+                sov_hub_data = sov_hub_request["Data"]
+
+                # Some of this we need to build here with the help of our type / geographic data
+                reagent_bay = {
+                    x["type_id"]: {
+                        "Name": type_data[str(x["type_id"])],
+                        "Quantity": x["amount"]
+                    }
+                    for x in sov_hub_data["reagent_bay"]["reagents"]
+                }
+                reagent_usage = {
+                    x["type_id"]: {
+                        "Name": type_data[str(x["type_id"])],
+                        "Usage": x["burning_per_hour"]
+                    }
+                    for x in sov_hub_data["reagent_bay"]["reagents"]
+                }
+                reagent_expirations = {
+                    x["type_id"]: {
+                        "Name": type_data[str(x["type_id"])],
+                        "Hours Remaining": floor(x["amount"] / x["burning_per_hour"]),
+                        "Expires": (reference_time + timedelta(hours=(floor(x["amount"] / x["burning_per_hour"]) + 1))).replace(minute=0, second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
+                    }
+                    for x in sov_hub_data["reagent_bay"]["reagents"] if x["burning_per_hour"] is not None and x["burning_per_hour"] != 0
+                }
+                upgrades = {
+                    x["type_id"]: {
+                        "Name": type_data[str(x["type_id"])],
+                        "State": x["power_state"]
+                    }
+                    for x in sov_hub_data["upgrades"]
+                }
+
+                # Workforce Configuration - This is a "one of" condition, this is messy but it should work
+                for each_configuration, configuration_data in sov_hub_data["workforce_transport"]["configuration"].items():
+
+                    workforce_configuration = each_configuration
+
+                    if workforce_configuration == "import":
+                        configured_import_sources = {
+                            x["solar_system_id"]: {
+                                "Name": geographic_data[str(x["solar_system_id"])]["name"],
+                                "Region ID": geographic_data[str(x["solar_system_id"])]["region_id"],
+                                "Region": geographic_data[str(x["solar_system_id"])]["region"],
+                                "Amount": 0
+                            }
+                            for x in configuration_data["sources"]
+                        }
+                    else:
+                        configured_import_sources = {}
+
+                    if workforce_configuration == "export":
+                        configured_export = {
+                            "ID": configuration_data["solar_system_id"],
+                            "Name": geographic_data[str(configuration_data["solar_system_id"])]["name"],
+                            "Region ID": geographic_data[str(configuration_data["solar_system_id"])]["region_id"],
+                            "Region": geographic_data[str(configuration_data["solar_system_id"])]["region"],
+                            "Amount": configuration_data["amount"]
+                        }
+                    else:
+                        configured_export = {}
+
+                # Workforce State - This is a "one of" condition, this is messy but it should work
+                for each_state, state_data in sov_hub_data["workforce_transport"]["state"].items():
+                    
+                    workforce_state = each_state
+
+                    if workforce_state == "import":
+                        current_import_sources = {
+                            x["solar_system_id"]: {
+                                "Name": geographic_data[str(x["solar_system_id"])]["name"],
+                                "Region ID": geographic_data[str(x["solar_system_id"])]["region_id"],
+                                "Region": geographic_data[str(x["solar_system_id"])]["region"],
+                                "Amount": 0
+                            }
+                            for x in state_data["sources"]
+                        }
+                    else:
+                        current_import_sources = {}
+
+                    if workforce_state == "export":
+                        current_export = {
+                            "ID": state_data["solar_system_id"],
+                            "Name": geographic_data[str(state_data["solar_system_id"])]["name"],
+                            "Region ID": geographic_data[str(state_data["solar_system_id"])]["region_id"],
+                            "Region": geographic_data[str(state_data["solar_system_id"])]["region"],
+                            "Amount": state_data["amount"]
+                        }
+                    else:
+                        current_export = {}
+
+                # Finally Building our SovHub Object
+                self.sov_data[sov_hub_data["solar_system_id"]] = SovHub(
+                    id = sov_hub_data["id"],
+                    owner_id = self.id,
+                    owner_name = self.name,
+                    owner_ticker = self.ticker,
+                    system_id = sov_hub_data["solar_system_id"],
+                    system = geographic_data[str(sov_hub_data["solar_system_id"])]["name"],
+                    region_id = geographic_data[str(sov_hub_data["solar_system_id"])]["region_id"],
+                    region = geographic_data[str(sov_hub_data["solar_system_id"])]["region"],
+                    fuel_acl_id = sov_hub_data["fuel_access_list_id"] if "fuel_access_list_id" in sov_hub_data else None,
+                    reagent_bay = reagent_bay,
+                    reagent_usage = reagent_usage,
+                    reagent_expirations = reagent_expirations,
+                    resources = sov_hub_data["resources"],
+                    workforce_configuration = workforce_configuration, 
+                    configured_import_sources = configured_import_sources,
+                    configured_export = configured_export,
+                    workforce_state = workforce_state, 
+                    current_import_sources = current_import_sources,
+                    current_export = current_export,
+                    upgrades = upgrades
+                )
+
+            else:
+                
+                raise Exception(
+                    "SOV HUB ERROR\n\nRepsonse Data: {data}\n\nResponse Headers: {headers}".format(
+                        data=sov_hub_request["Data"],
+                        headers=sov_hub_request["Headers"]
+                    )
+                )
+            
+        # Building Import Amounts
+        for each_system, each_sov_hub in self.sov_data.items():
+
+            if each_sov_hub.workforce_configuration == "import":
+
+                for each_import_system, each_import_data in each_sov_hub.configured_import_sources.items():
+
+                    if self.sov_data[each_import_system].configured_export["ID"] == each_system:
+                        each_import_data["Amount"] = self.sov_data[each_import_system].configured_export["Amount"]
+
+            if each_sov_hub.workforce_state == "import":
+
+                for each_import_system, each_import_data in each_sov_hub.current_import_sources.items():
+                    
+                    if self.sov_data[each_import_system].current_export["ID"] == each_system:
+                        each_import_data["Amount"] = self.sov_data[each_import_system].current_export["Amount"]
                 
     def get_assets(self, auth_handler, login_name, type_data):
 
