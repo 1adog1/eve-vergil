@@ -17,6 +17,8 @@ class UpwellStructure:
         owner_ticker,
         system_id,
         system_name,
+        constellation_id, 
+        constellation, 
         region_id,
         region_name,
         state,
@@ -39,6 +41,8 @@ class UpwellStructure:
         self.owner_ticker = owner_ticker
         self.system_id = system_id
         self.system = system_name
+        self.constellation_id = constellation_id
+        self.constellation = constellation
         self.region_id = region_id
         self.region = region_name
         self.state = state
@@ -77,6 +81,7 @@ class UpwellStructure:
             "Owner": self.owner_name,
             "Owner Ticker": self.owner_ticker,
             "System": self.system,
+            "Constellation": self.constellation,
             "Region": self.region,
             "State": self.state,
             "Fitting": self.fitting,
@@ -154,6 +159,8 @@ class Starbase:
         owner_ticker,
         system_id,
         system_name,
+        constellation_id, 
+        constellation, 
         region_id,
         region_name,
         state,
@@ -171,6 +178,8 @@ class Starbase:
         self.owner_ticker = owner_ticker
         self.system_id = system_id
         self.system = system_name
+        self.constellation_id = constellation_id
+        self.constellation = constellation
         self.region_id = region_id
         self.region = region_name
         self.state = state
@@ -189,6 +198,7 @@ class Starbase:
             "Owner": self.owner_name,
             "Owner Ticker": self.owner_ticker,
             "System": self.system,
+            "Constellation": self.constellation,
             "Region": self.region,
             "State": self.state,
             "Fuel": "\n".join(["{quantity:,} {type_name}s".format(quantity=x["Quantity"], type_name=x["Name"]) for x in self.fuel.values()]),
@@ -219,6 +229,8 @@ class SovHub:
         owner_ticker,
         system_id, 
         system, 
+        constellation_id, 
+        constellation, 
         region_id, 
         region, 
         fuel_acl_id, 
@@ -242,6 +254,8 @@ class SovHub:
 
         self.system_id = system_id
         self.system = system
+        self.constellation_id = constellation_id
+        self.constellation = constellation
         self.region_id = region_id
         self.region = region
         self.fuel_acl_id = fuel_acl_id
@@ -299,6 +313,7 @@ class SovHub:
             "Owner": self.owner_name,
             "Owner Ticker": self.owner_ticker,
             "System": self.system,
+            "Constellation": self.constellation,
             "Region": self.region,
             "Online Upgrades": "\n".join([x["Name"] for x in self.online_upgrades.values()]),
             "Offline Upgrades": "\n".join([x["Name"] for x in self.offline_upgrades.values()]),

@@ -144,9 +144,9 @@ class App:
                 
                 self.unknowns[each_corporation] = self.ids_to_parse[each_corporation]
                 
-        self.structures = dict(sorted(self.structures.items(), key=lambda x: (str(x[1].owner_name), str(x[1].name))))
-        self.starbases = dict(sorted(self.starbases.items(), key=lambda x: (str(x[1].owner_name), str(x[1].moon))))
-        self.sov = dict(sorted(self.sov.items(), key=lambda x: (str(x[1].owner_name), str(x[1].region), str(x[1].system))))
+        self.structures = dict(sorted(self.structures.items(), key=lambda x: (str(x[1].owner_name), str(x[1].region), str(x[1].constellation), str(x[1].name))))
+        self.starbases = dict(sorted(self.starbases.items(), key=lambda x: (str(x[1].owner_name), str(x[1].region), str(x[1].constellation), str(x[1].moon))))
+        self.sov = dict(sorted(self.sov.items(), key=lambda x: (str(x[1].owner_name), str(x[1].region), str(x[1].constellation), str(x[1].system))))
                 
     def export_json(self, directory, file_prefix):
         
