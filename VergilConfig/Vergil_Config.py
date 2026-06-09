@@ -121,12 +121,12 @@ class Config:
             )
 
             self.app = AppConfig(
-                targetAlliances = os.environ["ENV_STRUCTURE_OVERVIEW_TARGET_ALLIANCES"],
-                targetCorps = os.environ["ENV_STRUCTURE_OVERVIEW_TARGET_CORPS"],
-                targetExclusions = os.environ["ENV_STRUCTURE_OVERVIEW_TARGET_EXCLUSIONS"],
-                reportTitle = os.environ["ENV_STRUCTURE_OVERVIEW_REPORT_TITLE"] if "ENV_STRUCTURE_OVERVIEW_REPORT_TITLE" in os.environ else None,
-                webhookPlatform = os.environ["ENV_STRUCTURE_OVERVIEW_WEBHOOK_PLATFORM"] if "ENV_STRUCTURE_OVERVIEW_WEBHOOK_PLATFORM" in os.environ else None,
-                webhookURL = os.environ["ENV_STRUCTURE_OVERVIEW_WEBHOOK_URL"] if "ENV_STRUCTURE_OVERVIEW_WEBHOOK_URL" in os.environ else None
+                TargetAlliances = os.environ["ENV_STRUCTURE_OVERVIEW_TARGET_ALLIANCES"],
+                TargetCorps = os.environ["ENV_STRUCTURE_OVERVIEW_TARGET_CORPS"],
+                TargetExclusions = os.environ["ENV_STRUCTURE_OVERVIEW_TARGET_EXCLUSIONS"],
+                ReportTitle = os.environ["ENV_STRUCTURE_OVERVIEW_REPORT_TITLE"] if "ENV_STRUCTURE_OVERVIEW_REPORT_TITLE" in os.environ else None,
+                WebhookPlatform = os.environ["ENV_STRUCTURE_OVERVIEW_WEBHOOK_PLATFORM"] if "ENV_STRUCTURE_OVERVIEW_WEBHOOK_PLATFORM" in os.environ else None,
+                WebhookURL = os.environ["ENV_STRUCTURE_OVERVIEW_WEBHOOK_URL"] if "ENV_STRUCTURE_OVERVIEW_WEBHOOK_URL" in os.environ else None
             )
 
         versioning_file = config_directory / "VERSIONING"
