@@ -21,7 +21,7 @@ def dataFile(extraFolder):
 
 class App:
     
-    def __init__(self, target_alliances, target_corporations, target_exclusions, core_info, data_to_build):
+    def __init__(self, target_alliances, target_corporations, target_exclusions, neucore_variables, version_variables, data_to_build):
         
         self.target_corporations = target_corporations
         self.target_alliances = target_alliances
@@ -29,9 +29,10 @@ class App:
         self.corporations = target_corporations
         self.corporation_data = {}
         
-        self.auth_handler = ESI.NeucoreAuth(core_info["AppID"], core_info["AppSecret"], core_info["AppURL"])
-        self.core_info = core_info
-        self.esi_handler = ESI.Handler()
+        self.auth_handler = ESI.NeucoreAuth(neucore_variables.app_id, neucore_variables.app_secret, neucore_variables.app_url)
+        self.neucore_variables = neucore_variables
+        self.version_variables = version_variables
+        self.esi_handler = ESI.Handler(self.version_variables)
         
         self.ids_to_parse = {}
         self.structures = {}
@@ -81,7 +82,7 @@ class App:
         
     def get_valid_tokens(self):
         
-        known_tokens = self.auth_handler.getTokenCharacters(self.core_info["LoginName"])
+        known_tokens = self.auth_handler.getTokenCharacters(self.neucore_variables.login_name)
         
         for each_token in known_tokens:
             
@@ -90,7 +91,7 @@ class App:
             
             if corporation_id in self.corporations and self.corporation_data[corporation_id] is None:
                 
-                self.corporation_data[corporation_id] = Corporation(corporation_id, character_id)
+                self.corporation_data[corporation_id] = Corporation(corporation_id, character_id, self.version_variables)
                 
                 print("Found token for " + str(corporation_id) + " from " + str(character_id) + "...")
                 
@@ -122,17 +123,17 @@ class App:
                 print("Checking " + str(each_corporation) + "...")
 
                 if "citadels" in data_types:
-                    self.corporation_data[each_corporation].get_structures(self.auth_handler, self.core_info["LoginName"], self.geographic_data, self.type_ids)
-                    self.corporation_data[each_corporation].get_extractions(self.auth_handler, self.core_info["LoginName"])
+                    self.corporation_data[each_corporation].get_structures(self.auth_handler, self.neucore_variables.login_name, self.geographic_data, self.type_ids)
+                    self.corporation_data[each_corporation].get_extractions(self.auth_handler, self.neucore_variables.login_name)
 
                 if "starbases" in data_types:
-                    self.corporation_data[each_corporation].get_starbases(self.auth_handler, self.core_info["LoginName"], self.geographic_data, self.type_ids)
+                    self.corporation_data[each_corporation].get_starbases(self.auth_handler, self.neucore_variables.login_name, self.geographic_data, self.type_ids)
 
                 if "sov" in data_types:
-                    self.corporation_data[each_corporation].get_sov(self.auth_handler, self.core_info["LoginName"], self.geographic_data, self.type_ids)
+                    self.corporation_data[each_corporation].get_sov(self.auth_handler, self.neucore_variables.login_name, self.geographic_data, self.type_ids)
 
                 if "citadels" in data_types or "starbases" in data_types:
-                    self.corporation_data[each_corporation].get_assets(self.auth_handler, self.core_info["LoginName"], self.type_ids)
+                    self.corporation_data[each_corporation].get_assets(self.auth_handler, self.neucore_variables.login_name, self.type_ids)
                     self.corporation_data[each_corporation].usage_calculations()
                 
                 self.structures = self.structures | self.corporation_data[each_corporation].structure_data

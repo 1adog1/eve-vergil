@@ -1,26 +1,11 @@
-import inspect
-import os
-import configparser
 import argparse
 
 from pathlib import Path
 from datetime import datetime, UTC
 
+from VergilConfig import Config
+
 import app
-
-#If you've moved your config.ini file, set this variable to the path of the folder containing it (no trailing slash).
-CONFIG_PATH_OVERRIDE = None
-
-def dataFile(extraFolder):
-
-    filename = inspect.getframeinfo(inspect.currentframe()).filename
-    path = os.path.join(os.path.dirname(os.path.abspath(filename)))
-
-    dataLocation = str(path) + extraFolder
-
-    return(dataLocation)
-
-configPath = (CONFIG_PATH_OVERRIDE) if (CONFIG_PATH_OVERRIDE is not None) else (dataFile("/config"))
 
 argument_parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
@@ -41,7 +26,7 @@ argument_parser.add_argument(
     "-d", 
     "--directory", 
     help="the directory to place exported files in",
-    default=dataFile("/output")
+    default=str((Path(__file__).parent / "output").resolve(True))
 )
 argument_parser.add_argument(
     "-n", 
@@ -113,49 +98,16 @@ argument_parser.add_argument(
 
 arguments = argument_parser.parse_args()
 
-if Path(configPath + "/config.ini").is_file():
+configVariables = Config()
 
-    config = configparser.ConfigParser()
-    config.read(dataFile("/config") + "/config.ini")
-
-    targetAlliances = str(config["App"]["TargetAlliances"]).replace(" ", "").split(",")
-    targetCorps = str(config["App"]["TargetCorps"]).replace(" ", "").split(",")
-    targetExclusions = str(config["App"]["TargetExclusions"]).replace(" ", "").split(",")
-    reportTitle = config["App"]["ReportTitle"]
-    webhookPlatform = config["App"]["WebhookPlatform"]
-    webhookURL = config["App"]["WebhookURL"]
-    coreInfo = config["NeuCore Authentication"]
-
-else:
-
-    try:
-
-        targetAlliances = str(os.environ["ENV_STRUCTURE_OVERVIEW_TARGET_ALLIANCES"]).replace(" ", "").split(",")
-        targetCorps = str(os.environ["ENV_STRUCTURE_OVERVIEW_TARGET_CORPS"]).replace(" ", "").split(",")
-        targetExclusions = str(os.environ["ENV_STRUCTURE_OVERVIEW_TARGET_EXCLUSIONS"]).replace(" ", "").split(",")
-        reportTitle = os.environ["ENV_STRUCTURE_OVERVIEW_REPORT_TITLE"] if "ENV_STRUCTURE_OVERVIEW_REPORT_TITLE" in os.environ else None
-        webhookPlatform = os.environ["ENV_STRUCTURE_OVERVIEW_WEBHOOK_PLATFORM"] if "ENV_STRUCTURE_OVERVIEW_WEBHOOK_PLATFORM" in os.environ else None
-        webhookURL = os.environ["ENV_STRUCTURE_OVERVIEW_WEBHOOK_URL"] if "ENV_STRUCTURE_OVERVIEW_WEBHOOK_URL" in os.environ else None
-        coreInfo = {
-            "AppID": os.environ["ENV_STRUCTURE_OVERVIEW_NEUCORE_APP_ID"], 
-            "AppSecret": os.environ["ENV_STRUCTURE_OVERVIEW_NEUCORE_APP_SECRET"], 
-            "AppURL": os.environ["ENV_STRUCTURE_OVERVIEW_NEUCORE_APP_URL"],
-            "LoginName": os.environ["ENV_STRUCTURE_OVERVIEW_NEUCORE_LOGIN_NAME"]
-        }
-
-    except:
-
-        raise Warning("No Configuration File or Required Environment Variables Found!")
-
-#Cleanup of possible parsing issues
-if "" in targetAlliances:
-    targetAlliances.remove("")
-if "" in targetCorps:
-    targetCorps.remove("")
-if "" in targetExclusions:
-    targetExclusions.remove("")
-
-processor = app.App(targetAlliances, targetCorps, targetExclusions, coreInfo, arguments.build_data)
+processor = app.App(
+    configVariables.app.target_alliances, 
+    configVariables.app.target_corps, 
+    configVariables.app.target_exclusions, 
+    configVariables.neucore_auth, 
+    configVariables.versioning,
+    arguments.build_data
+)
 
 if arguments.operation == "export":
 
@@ -169,9 +121,9 @@ if arguments.operation == "export":
 if arguments.operation == "report":
 
     processor.make_report(
-        webhookPlatform, 
-        webhookURL, 
-        reportTitle, 
+        configVariables.app.webhook_platform, 
+        configVariables.app.webhook_url, 
+        configVariables.app.report_title, 
         arguments.citadel_reports,
         arguments.pos_reports,
         arguments.sov_reports,

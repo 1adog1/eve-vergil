@@ -8,12 +8,13 @@ reference_time = datetime.now(UTC)
 
 class Corporation:
     
-    def __init__(self, id, source_id):
+    def __init__(self, id, source_id, version_variables):
         
         self.id = id
         self.name = None
         self.ticker = None
         self.source = source_id
+        self.version_variables = version_variables
         self.structure_data = {}
         self.extractions = {}
         self.starbase_data = {}
@@ -23,7 +24,7 @@ class Corporation:
         
     def get_name(self):
         
-        esi_handler = ESI.Handler()
+        esi_handler = ESI.Handler(self.version_variables)
         
         name_request = esi_handler.call("/corporations/{corporation_id}/", corporation_id=self.id, retries=2)
         
@@ -48,7 +49,7 @@ class Corporation:
         if access_token is None:
             raise Exception("FAILED TO GET ACCESS TOKEN FROM NEUCORE FOR {source}".format(source=self.source))
         
-        esi_handler = ESI.Handler(access_token)
+        esi_handler = ESI.Handler(self.version_variables, access_token)
         
         current_page = 1
         max_page = 1
@@ -105,7 +106,7 @@ class Corporation:
         if access_token is None:
             raise Exception("FAILED TO GET ACCESS TOKEN FROM NEUCORE FOR {source}".format(source=self.source))
         
-        esi_handler = ESI.Handler(access_token)
+        esi_handler = ESI.Handler(self.version_variables, access_token)
         
         current_page = 1
         max_page = 1
@@ -145,7 +146,7 @@ class Corporation:
         if access_token is None:
             raise Exception("FAILED TO GET ACCESS TOKEN FROM NEUCORE FOR {source}".format(source=self.source))
         
-        esi_handler = ESI.Handler(access_token)
+        esi_handler = ESI.Handler(self.version_variables, access_token)
                 
         current_page = 1
         max_page = 1
@@ -215,7 +216,7 @@ class Corporation:
         if access_token is None:
             raise Exception("FAILED TO GET ACCESS TOKEN FROM NEUCORE FOR {source}".format(source=self.source))
         
-        esi_handler = ESI.Handler(access_token)
+        esi_handler = ESI.Handler(self.version_variables, access_token)
 
         sov_hub_list_request = esi_handler.call("/corporations/{corporation_id}/structures/sovereignty-hubs/", corporation_id=self.id, retries=2)
 
@@ -240,7 +241,7 @@ class Corporation:
             if access_token is None:
                 raise Exception("FAILED TO GET ACCESS TOKEN FROM NEUCORE FOR {source}".format(source=self.source))
             
-            esi_handler = ESI.Handler(access_token)
+            esi_handler = ESI.Handler(self.version_variables, access_token)
 
             sov_hub_request = esi_handler.call("/corporations/{corporation_id}/structures/sovereignty-hubs/{sovereignty_hub_id}/", corporation_id=self.id, sovereignty_hub_id=each_sov_hub, retries=2)
 
@@ -249,13 +250,6 @@ class Corporation:
                 sov_hub_data = sov_hub_request["Data"]
 
                 # Some of this we need to build here with the help of our type / geographic data
-                reagent_bay = {
-                    x["type_id"]: {
-                        "Name": type_data[str(x["type_id"])],
-                        "Quantity": x["amount"]
-                    }
-                    for x in sov_hub_data["reagent_bay"]["reagents"]
-                }
                 reagent_usage = {
                     x["type_id"]: {
                         "Name": type_data[str(x["type_id"])],
@@ -263,11 +257,18 @@ class Corporation:
                     }
                     for x in sov_hub_data["reagent_bay"]["reagents"]
                 }
+                reagent_bay = {
+                    x["type_id"]: {
+                        "Name": type_data[str(x["type_id"])],
+                        "Quantity": x["amount"] - (floor((reference_time - datetime.fromisoformat(sov_hub_data["reagent_bay"]["last_updated"])).total_seconds() / 3600) * x["burning_per_hour"])
+                    }
+                    for x in sov_hub_data["reagent_bay"]["reagents"]
+                }
                 reagent_expirations = {
                     x["type_id"]: {
                         "Name": type_data[str(x["type_id"])],
-                        "Hours Remaining": floor(x["amount"] / x["burning_per_hour"]),
-                        "Expires": (reference_time + timedelta(hours=(floor(x["amount"] / x["burning_per_hour"]) + 1))).replace(minute=0, second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
+                        "Hours Remaining": floor(reagent_bay[x["type_id"]]["Quantity"] / x["burning_per_hour"]),
+                        "Expires": (reference_time + timedelta(hours=(floor(reagent_bay[x["type_id"]]["Quantity"] / x["burning_per_hour"]) + 1))).replace(minute=0, second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
                     }
                     for x in sov_hub_data["reagent_bay"]["reagents"] if x["burning_per_hour"] is not None and x["burning_per_hour"] != 0
                 }
@@ -401,7 +402,7 @@ class Corporation:
             if access_token is None:
                 raise Exception("FAILED TO GET ACCESS TOKEN FROM NEUCORE FOR {source}".format(source=self.source))
             
-            esi_handler = ESI.Handler(access_token)
+            esi_handler = ESI.Handler(self.version_variables, access_token)
             
             assets_request = esi_handler.call("/corporations/{corporation_id}/assets/", corporation_id=self.id, page=current_page, retries=2)
             

@@ -65,7 +65,8 @@ class Base:
             
             headers = {
                 "accept": "application/json",
-                "X-Compatibility-Date": (compatibilityDate if compatibilityDate is not None else self.defaultCompatibilityDate)
+                "X-Compatibility-Date": (compatibilityDate if compatibilityDate is not None else self.defaultCompatibilityDate),
+                "X-User-Agent": self.userAgent
             }
             
             if accessToken is not None:

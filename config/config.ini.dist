@@ -1,3 +1,11 @@
+[Eve Authentication]
+ClientContactInfo = 
+;When Using Environment Variables: ENV_STRUCTURE_OVERVIEW_EVE_CLIENT_CONTACT_INFO - (REQUIRED)
+;This allows CCP to identify who's running the application. Use one of the following patterns:
+; foo@example.com
+; discord:username
+; eve:charactername
+
 [NeuCore Authentication]
 AppID = 
 ;When Using Environment Variables: ENV_STRUCTURE_OVERVIEW_NEUCORE_APP_ID - (REQUIRED)

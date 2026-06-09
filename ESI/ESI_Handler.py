@@ -2,12 +2,26 @@ from ESI import ESI_Method_Register
 
 class Handler(ESI_Method_Register.MethodRegister):
 
-    def __init__(self, accessToken = None):
+    def __init__(self, versionVariables, accessToken = None):
             
         self.accessToken = accessToken
         
-        self.initalizeMethodList()
-        
+        self.initializeMethodList()
+        self.buildUserAgent(versionVariables)
+
+    def buildUserAgent(self, versionVariables):
+
+        self.userAgent = "{app_name}/{app_version} ({contact_info}; +{app_github})".format(
+            app_name = versionVariables.app_name,
+            app_version = versionVariables.app_version,
+            contact_info = versionVariables.client_contact_info,
+            app_github = versionVariables.app_github
+        )
+
+    def updateAccessToken(self, accessToken):
+
+        self.accessToken = accessToken
+
     def call(self, endpoint, **arguments):
     
         if (
