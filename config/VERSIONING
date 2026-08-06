@@ -1,7 +1,7 @@
 [App]
 app_name = Eve-Vergil
 major_version = Superintendent
-minor_version = 0
+minor_version = 1
 patch_version = 0
 delimiter = " - "
 github_link = https://github.com/1adog1/eve-vergil
