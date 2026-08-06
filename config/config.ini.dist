@@ -27,6 +27,25 @@ TargetCorps =
 TargetExclusions = 
 ;When Using Environment Variables: ENV_STRUCTURE_OVERVIEW_TARGET_EXCLUSIONS - (REQUIRED)
 ;Target Exclusions is a set of comma-separated corporation IDs in integer form. No comma is required for only one id.
+ExcludedTypes = 
+;When Using Environment Variables: ENV_STRUCTURE_OVERVIEW_EXCLUDED_TYPES - (DEFAULT: None)
+;Excluded Types is a set of comma-separated structure or starbase type IDs in integer form. No comma is required for only one id.
+IndustryTypes = 
+;When Using Environment Variables: ENV_STRUCTURE_OVERVIEW_INDUSTRY_TYPES - (DEFAULT: None)
+;Structures of these types are excluded unless they have one or more industry rigs.
+;Industry Types is a set of comma-separated type IDs in integer form. No comma is required for only one id.
+RegionFilter = 
+;When Using Environment Variables: ENV_STRUCTURE_OVERVIEW_REGION_FILTER - (DEFAULT: None)
+;Add these regions to the location filter. If the location filter is empty, it will be ignored.
+;RegionFilter is a set of comma-separated region IDs. No comma is required for only one element.
+ConstellationFilter = 
+;When Using Environment Variables: ENV_STRUCTURE_OVERVIEW_CONSTELLATION_FILTER - (DEFAULT: None)
+;Add these constellations to the location filter. If the location filter is empty, it will be ignored.
+;ConstellationFilter is a set of comma-separated constellation IDs. No comma is required for only one element.
+SystemFilter = 
+;When Using Environment Variables: ENV_STRUCTURE_OVERVIEW_SYSTEM_FILTER - (DEFAULT: None)
+;Add these systems to the location filter. If the location filter is empty, it will be ignored.
+;SystemFilter is a set of comma-separated system IDs. No comma is required for only one element.
 ReportTitle = 
 ;When Using Environment Variables: ENV_STRUCTURE_OVERVIEW_REPORT_TITLE - (REQUIRED FOR REPORTS)
 ;The header for the report

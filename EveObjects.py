@@ -1,3 +1,5 @@
+from bisect import bisect_left
+
 class UpwellStructure:
 
     reagent_consumption = {
@@ -5,6 +7,9 @@ class UpwellStructure:
             81143: 200      # 200 Magmatic Gas per Hour
         }
     }
+
+    overview_states = ["shield_vulnerable", "armor_reinforce", "armor_vulnerable", "hull_reinforce", "hull_vulnerable"]
+    industry_rig_terms = ["Material Efficiency", "Time Efficiency", "Manufacturing Efficiency", "Reactor Efficiency", "Research", "Blueprint", "Laboratory", "Grading", "Reprocessing"]
 
     def __init__(
         self,
@@ -30,7 +35,7 @@ class UpwellStructure:
         timer,
         unanchor_timer, 
         reinforcement_hour,
-        ):
+    ):
 
         self.id = id
         self.name = name
@@ -50,7 +55,11 @@ class UpwellStructure:
         self.mid_slots = {}
         self.low_slots = {}
         self.rigs = {}
+        self.industry_rigs = {}
         self.service_modules = {}
+        self.fighter_tubes = {}
+        self.fighter_bay = {}
+        self.ammo_hold = {}
         self.services = services
         self.online_services = online_services
         self.offline_services = offline_services
@@ -65,7 +74,7 @@ class UpwellStructure:
 
     def export(self):
 
-        self.fitting = "[{type_name}, {name}]\n\n{lows}\n\n{mids}\n\n{highs}\n\n{rigs}\n\n{services}".format(
+        self.fitting = "[{type_name}, {name}]\n\n{lows}\n\n{mids}\n\n{highs}\n\n{rigs}\n\n{services}\n\n{fighter_tubes}\n{fighter_bay}\n\n{ammo_hold}".format(
             type_name = self.type,
             name = self.name,
             lows = "\n".join([y for x, y in sorted(self.low_slots.items())]),
@@ -73,13 +82,16 @@ class UpwellStructure:
             highs = "\n".join([y for x, y in sorted(self.high_slots.items())]),
             rigs = "\n".join([y for x, y in sorted(self.rigs.items())]),
             services = "\n".join([y for x, y in sorted(self.service_modules.items())]),
+            fighter_tubes = "\n".join([y for x, y in sorted(self.fighter_tubes.items())]),
+            fighter_bay = "\n".join([y["Name"] + " x" + str(y["Quantity"]) for x, y in sorted(self.fighter_bay.items())]),
+            ammo_hold = "\n".join([y["Name"] + " x" + str(y["Quantity"]) for x, y in sorted(self.ammo_hold.items())])
         )
 
         return {
             "Name": self.name,
             "Type": self.type,
             "Owner": self.owner_name,
-            "Owner Ticker": self.owner_ticker,
+            "Ticker": self.owner_ticker,
             "System": self.system,
             "Constellation": self.constellation,
             "Region": self.region,
@@ -95,6 +107,24 @@ class UpwellStructure:
             "Timer": self.timer,
             "Unanchor Timer": self.unanchor_timer,
             "Reinforcement Hour": self.reinforcement_hour
+        }
+
+    def overview_approved(self):
+
+        return self.state in self.overview_states
+    
+    def overview(self):
+
+        return {
+            "Name": self.name,
+            "Type": self.type,
+            "Owner": self.owner_name,
+            "Ticker": self.owner_ticker,
+            "System": self.system,
+            "Constellation": self.constellation,
+            "Region": self.region,
+            "Services": "\n".join(self.online_services),
+            "Industry Rigs": "\n".join([y for x, y in sorted(self.industry_rigs.items())])
         }
 
 class Starbase:
@@ -147,6 +177,8 @@ class Starbase:
         27612: {4246: 8},   # Domination Control Tower Small            8 Hydrogen Fuel Blocks per Hour
     }
 
+    overview_states = ["online", "reinforced"]
+
     def __init__(
         self,
         id,
@@ -196,7 +228,7 @@ class Starbase:
             "Moon": self.moon,
             "Type": self.type,
             "Owner": self.owner_name,
-            "Owner Ticker": self.owner_ticker,
+            "Ticker": self.owner_ticker,
             "System": self.system,
             "Constellation": self.constellation,
             "Region": self.region,
@@ -207,6 +239,22 @@ class Starbase:
             "Strontium Hours": self.strontium_hours,
             "Timer": self.timer,
             "Unanchor Timer": self.unanchor_timer
+        }
+
+    def overview_approved(self):
+
+        return self.state in self.overview_states
+
+    def overview(self):
+
+        return {
+            "Moon": self.moon,
+            "Type": self.type,
+            "Owner": self.owner_name,
+            "Ticker": self.owner_ticker,
+            "System": self.system,
+            "Constellation": self.constellation,
+            "Region": self.region
         }
 
 class Extraction:
@@ -221,6 +269,8 @@ class Extraction:
 
 class SovHub:
 
+    user_relevant_upgrade_terms = ["Prospecting", "Threat", "Exploration", "Stability", "Navigation", "Logistics"]
+
     def __init__(
         self, 
         id, 
@@ -233,6 +283,7 @@ class SovHub:
         constellation, 
         region_id, 
         region, 
+        system_security,
         fuel_acl_id, 
         reagent_bay,
         reagent_usage, 
@@ -258,6 +309,8 @@ class SovHub:
         self.constellation = constellation
         self.region_id = region_id
         self.region = region
+        self.system_security = system_security
+        self.system_security_band = "EDCBA"[bisect_left([-0.85, -0.65, -0.45, -0.25, 0], self.system_security)]
         self.fuel_acl_id = fuel_acl_id
         
         self.reagent_bay = reagent_bay
@@ -281,6 +334,11 @@ class SovHub:
             x: y
             for x, y in upgrades.items()
             if y["State"] == "Online"
+        }
+        self.user_relevant_upgrades = {
+            x: y 
+            for x, y in self.online_upgrades.items() 
+            if any(term in y["Name"] for term in self.user_relevant_upgrade_terms)
         }
         self.offline_upgrades = {
             x: y
@@ -311,10 +369,12 @@ class SovHub:
 
         return {
             "Owner": self.owner_name,
-            "Owner Ticker": self.owner_ticker,
+            "Ticker": self.owner_ticker,
             "System": self.system,
             "Constellation": self.constellation,
             "Region": self.region,
+            "Security": self.system_security,
+            "Band": self.system_security_band,
             "Online Upgrades": "\n".join([x["Name"] for x in self.online_upgrades.values()]),
             "Offline Upgrades": "\n".join([x["Name"] for x in self.offline_upgrades.values()]),
             "Low Power Upgrades": "\n".join([x["Name"] for x in self.low_power_upgrades.values()]),
@@ -331,4 +391,16 @@ class SovHub:
             "Configured Flow": configured_workforce,
             "Workforce State": self.workforce_state,
             "Current Flow": current_workforce
+        }
+    
+    def overview(self):
+
+        return {
+            "Owner": self.owner_name,
+            "Ticker": self.owner_ticker,
+            "System": self.system,
+            "Constellation": self.constellation,
+            "Region": self.region,
+            "Security Band": self.system_security_band,
+            "Upgrades": "\n".join([x["Name"] for x in self.user_relevant_upgrades.values()])
         }

@@ -26,8 +26,9 @@ The app builds an aggregate structure list from the corporations configured. The
 ## Run Options
 * `operation`
   * Required argument setting the operation the app will preform:
-    * `report`
-    * `export`
+    * `report` sends a report to the configured Slack or Discord channel
+    * `export` dumps the full loaded dataset in human-readable form to one or more files
+    * `overview` dumps the loaded dataset in a form designed for public consumption
 * `-b`, `--build_data DATA_TYPES`
   * A space-separated list of data types to build, defaults to all:
     * `citadels`
@@ -54,6 +55,8 @@ The app builds an aggregate structure list from the corporations configured. The
     * `unanchoring`
 * `-f`, `--fuel FUEL_THRESHOLD`
   * A threshold of fuel in a Citadel or Starbase in hours remaining, below which a report is generated, defaults to `72`
+* `-r`, `--reagents REAGENT_THRESHOLD`
+  * A threshold of reagents in a Citadel or Sov Hub in hours remaining, below which a report is generated, defaults to `72`
 * `-l`, `--liquid_ozone LIQUID_OZONE_THRESHOLD`
   * A threshold of liquid ozone in an Ansiblex, below which a report is generated, defaults to `100000`
 * `-p`, `--pos_reports POS_REPORT_TYPES`

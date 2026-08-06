@@ -12,7 +12,7 @@ argument_parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefau
 argument_parser.add_argument(
     "operation", 
     help="the operation the app should perform", 
-    choices=["report", "export"]
+    choices=["report", "export", "overview"]
 )
 argument_parser.add_argument(
     "-b", 
@@ -25,19 +25,19 @@ argument_parser.add_argument(
 argument_parser.add_argument(
     "-d", 
     "--directory", 
-    help="the directory to place exported files in",
+    help="the directory to place export and overview files in",
     default=str((Path(__file__).parent / "output").resolve(True))
 )
 argument_parser.add_argument(
     "-n", 
     "--name_prefix", 
-    help="the prefix to assign to the exported filenames",
+    help="the prefix to assign to the export and overview filenames",
     default=datetime.now(UTC).strftime("%Y-%m-%d_%H-%M-%S")
 )
 argument_parser.add_argument(
     "-e", 
     "--extensions", 
-    help="the file types to export", 
+    help="the file types to exports and overviews will use", 
     nargs="+",
     choices=["csv", "json"],
     default=["csv", "json"]
@@ -101,20 +101,18 @@ arguments = argument_parser.parse_args()
 configVariables = Config()
 
 processor = app.App(
-    configVariables.app.target_alliances, 
-    configVariables.app.target_corps, 
-    configVariables.app.target_exclusions, 
+    configVariables.app,
     configVariables.neucore_auth, 
     configVariables.versioning,
     arguments.build_data
 )
 
-if arguments.operation == "export":
+if arguments.operation in ["export", "overview"]:
 
     if "json" in arguments.extensions:
-        processor.export_json(arguments.directory, arguments.name_prefix)
+        processor.export_json(arguments.operation, arguments.directory, arguments.name_prefix)
     if "csv" in arguments.extensions:
-        processor.export_csv(arguments.directory, arguments.name_prefix)
+        processor.export_csv(arguments.operation, arguments.directory, arguments.name_prefix)
     if "missing" in arguments.build_data:
         processor.export_unknowns(arguments.directory, arguments.name_prefix)
 

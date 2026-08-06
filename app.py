@@ -21,15 +21,22 @@ def dataFile(extraFolder):
 
 class App:
     
-    def __init__(self, target_alliances, target_corporations, target_exclusions, neucore_variables, version_variables, data_to_build):
+    def __init__(
+            self, 
+            app_variables,
+            neucore_variables, 
+            version_variables, 
+            data_to_build
+        ):
         
-        self.target_corporations = target_corporations
-        self.target_alliances = target_alliances
-        self.target_exclusions = target_exclusions
-        self.corporations = target_corporations
+        self.target_corporations = app_variables.target_corps
+        self.target_alliances = app_variables.target_alliances
+        self.target_exclusions = app_variables.target_exclusions
+        self.corporations = app_variables.target_corps
         self.corporation_data = {}
         
         self.auth_handler = ESI.NeucoreAuth(neucore_variables.app_id, neucore_variables.app_secret, neucore_variables.app_url)
+        self.app_variables = app_variables
         self.neucore_variables = neucore_variables
         self.version_variables = version_variables
         self.esi_handler = ESI.Handler(self.version_variables)
@@ -91,7 +98,7 @@ class App:
             
             if corporation_id in self.corporations and self.corporation_data[corporation_id] is None:
                 
-                self.corporation_data[corporation_id] = Corporation(corporation_id, character_id, self.version_variables)
+                self.corporation_data[corporation_id] = Corporation(corporation_id, character_id, self.app_variables, self.version_variables)
                 
                 print("Found token for " + str(corporation_id) + " from " + str(character_id) + "...")
                 
@@ -134,7 +141,7 @@ class App:
 
                 if "citadels" in data_types or "starbases" in data_types:
                     self.corporation_data[each_corporation].get_assets(self.auth_handler, self.neucore_variables.login_name, self.type_ids)
-                    self.corporation_data[each_corporation].usage_calculations()
+                    self.corporation_data[each_corporation].process_asset_data()
                 
                 self.structures = self.structures | self.corporation_data[each_corporation].structure_data
                 self.extractions = self.extractions | self.corporation_data[each_corporation].extractions
@@ -149,38 +156,38 @@ class App:
         self.starbases = dict(sorted(self.starbases.items(), key=lambda x: (str(x[1].owner_name), str(x[1].region), str(x[1].constellation), str(x[1].moon))))
         self.sov = dict(sorted(self.sov.items(), key=lambda x: (str(x[1].owner_name), str(x[1].region), str(x[1].constellation), str(x[1].system))))
                 
-    def export_json(self, directory, file_prefix):
+    def export_json(self, mode, directory, file_prefix):
         
         print("Exporting JSONs...")
         
         if self.structures:
-            with open((directory + "/" + file_prefix + "_citadels.json"), "w") as json_file:
-                json.dump({x: y.export() for x, y in self.structures.items()}, json_file, indent=1)
+            with open((directory + "/" + mode + "_" + file_prefix + "_citadels.json"), "w") as json_file:
+                json.dump({x: getattr(y, mode)() for x, y in self.structures.items() if (mode != "overview" or y.overview_approved())}, json_file, indent=1)
         else:
             print("No citadels found, skipping export.")
 
         if self.starbases:
-            with open((directory + "/" + file_prefix + "_starbases.json"), "w") as json_file:
-                json.dump({x: y.export() for x, y in self.starbases.items()}, json_file, indent=1)
+            with open((directory + "/" + mode + "_" + file_prefix + "_starbases.json"), "w") as json_file:
+                json.dump({x: getattr(y, mode)() for x, y in self.starbases.items() if (mode != "overview" or y.overview_approved())}, json_file, indent=1)
         else:
             print("No starbases found, skipping export.")
 
         if self.sov:
-            with open((directory + "/" + file_prefix + "_sov.json"), "w") as json_file:
-                json.dump({x: y.export() for x, y in self.sov.items()}, json_file, indent=1)
+            with open((directory + "/" + mode + "_" + file_prefix + "_sov.json"), "w") as json_file:
+                json.dump({x: getattr(y, mode)() for x, y in self.sov.items()}, json_file, indent=1)
         else:
             print("No sov found, skipping export.")
         
-    def export_csv(self, directory, file_prefix):
+    def export_csv(self, mode, directory, file_prefix):
         
         print("Exporting CSVs...")
 
-        structure_export_data = {x: y.export() for x, y in self.structures.items()}
-        starbase_export_data = {x: y.export() for x, y in self.starbases.items()}
-        sov_export_data = {x: y.export() for x, y in self.sov.items()}
+        structure_export_data = {x: getattr(y, mode)() for x, y in self.structures.items() if (mode != "overview" or y.overview_approved())}
+        starbase_export_data = {x: getattr(y, mode)() for x, y in self.starbases.items() if (mode != "overview" or y.overview_approved())}
+        sov_export_data = {x: getattr(y, mode)() for x, y in self.sov.items()}
         
         if structure_export_data:
-            with open((directory + "/" + file_prefix + "_citadels.csv"), "w", newline="") as csv_file:
+            with open((directory + "/" + mode + "_" + file_prefix + "_citadels.csv"), "w", newline="") as csv_file:
                 fields = list(structure_export_data.values())[0].keys()
                 csv_writer = DictWriter(csv_file, fieldnames=fields)
                 
@@ -196,7 +203,7 @@ class App:
 
 
         if starbase_export_data:    
-            with open((directory + "/" + file_prefix + "_starbases.csv"), "w", newline="") as csv_file:
+            with open((directory + "/" + mode + "_" + file_prefix + "_starbases.csv"), "w", newline="") as csv_file:
                 fields = list(starbase_export_data.values())[0].keys()
                 csv_writer = DictWriter(csv_file, fieldnames=fields)
                 
@@ -211,7 +218,7 @@ class App:
             print("No starbases found, skipping export.")
 
         if sov_export_data:    
-            with open((directory + "/" + file_prefix + "_sov.csv"), "w", newline="") as csv_file:
+            with open((directory + "/" + mode + "_" + file_prefix + "_sov.csv"), "w", newline="") as csv_file:
                 fields = list(sov_export_data.values())[0].keys()
                 csv_writer = DictWriter(csv_file, fieldnames=fields)
                 

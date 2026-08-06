@@ -8,12 +8,13 @@ reference_time = datetime.now(UTC)
 
 class Corporation:
     
-    def __init__(self, id, source_id, version_variables):
+    def __init__(self, id, source_id, app_variables,version_variables):
         
         self.id = id
         self.name = None
         self.ticker = None
         self.source = source_id
+        self.app_variables = app_variables
         self.version_variables = version_variables
         self.structure_data = {}
         self.extractions = {}
@@ -41,7 +42,20 @@ class Corporation:
                     headers=name_request["Headers"]
                 )
             )
-        
+
+    # Used to filter for locations and excluded types
+    # Note that the industry types filter is applied in process_asset_data(), as we need to pull a corp's assets to see its structures' rigs
+    def passes_filters(self, location_data, type_id):
+
+        return (
+            not self.app_variables.location_filter_active
+            or (
+                (str(location_data["region_id"]) in self.app_variables.region_filter)
+                or (str(location_data["constellation_id"]) in self.app_variables.constellation_filter)
+                or (str(location_data["system_id"]) in self.app_variables.system_filter)
+            )
+        ) and str(type_id) not in self.app_variables.excluded_types
+
     def get_structures(self, auth_handler, login_name, geographic_data, type_data):
         
         access_token = auth_handler.getAccessToken(self.source, login_name)
@@ -63,30 +77,34 @@ class Corporation:
                 
                 for each_structure in structures_request["Data"]:
 
-                    self.structure_data[each_structure["structure_id"]] = UpwellStructure(
-                        id = each_structure["structure_id"],
-                        name = (each_structure["name"] if "name" in each_structure else None),
-                        type_id = each_structure["type_id"],
-                        type_name = type_data[str(each_structure["type_id"])],
-                        owner_id = self.id,
-                        owner_name = self.name,
-                        owner_ticker = self.ticker,
-                        system_id = each_structure["system_id"],
-                        system_name = geographic_data[str(each_structure["system_id"])]["name"],
-                        constellation_id = geographic_data[str(each_structure["system_id"])]["constellation_id"],
-                        constellation = geographic_data[str(each_structure["system_id"])]["constellation"],
-                        region_id = geographic_data[str(each_structure["system_id"])]["region_id"],
-                        region_name = geographic_data[str(each_structure["system_id"])]["region"],
-                        state = each_structure["state"],
-                        services = ([x["name"] for x in each_structure["services"]] if "services" in each_structure else None),
-                        online_services = ([x["name"] for x in each_structure["services"] if x["state"] == "online"] if "services" in each_structure else None),
-                        offline_services = ([x["name"] for x in each_structure["services"] if x["state"] == "offline"] if "services" in each_structure else None),
-                        has_drill = ("services" in each_structure and {"name": "Moon Drilling", "state": "online"} in each_structure["services"]),
-                        fuel_expiry = (each_structure["fuel_expires"] if "fuel_expires" in each_structure else None),
-                        timer = (each_structure["state_timer_end"] if "state_timer_end" in each_structure else None),
-                        unanchor_timer = (each_structure["unanchors_at"] if "unanchors_at" in each_structure else None),
-                        reinforcement_hour = (each_structure["reinforce_hour"] if "reinforce_hour" in each_structure else None)
-                    )
+                    location_data = geographic_data[str(each_structure["system_id"])]
+
+                    if self.passes_filters(location_data, each_structure["type_id"]):
+
+                        self.structure_data[each_structure["structure_id"]] = UpwellStructure(
+                            id = each_structure["structure_id"],
+                            name = (each_structure["name"] if "name" in each_structure else None),
+                            type_id = each_structure["type_id"],
+                            type_name = type_data[str(each_structure["type_id"])],
+                            owner_id = self.id,
+                            owner_name = self.name,
+                            owner_ticker = self.ticker,
+                            system_id = each_structure["system_id"],
+                            system_name = location_data["name"],
+                            constellation_id = location_data["constellation_id"],
+                            constellation = location_data["constellation"],
+                            region_id = location_data["region_id"],
+                            region_name = location_data["region"],
+                            state = each_structure["state"],
+                            services = ([x["name"] for x in each_structure["services"]] if "services" in each_structure else None),
+                            online_services = ([x["name"] for x in each_structure["services"] if x["state"] == "online"] if "services" in each_structure else None),
+                            offline_services = ([x["name"] for x in each_structure["services"] if x["state"] == "offline"] if "services" in each_structure else None),
+                            has_drill = ("services" in each_structure and {"name": "Moon Drilling", "state": "online"} in each_structure["services"]),
+                            fuel_expiry = (each_structure["fuel_expires"] if "fuel_expires" in each_structure else None),
+                            timer = (each_structure["state_timer_end"] if "state_timer_end" in each_structure else None),
+                            unanchor_timer = (each_structure["unanchors_at"] if "unanchors_at" in each_structure else None),
+                            reinforcement_hour = (each_structure["reinforce_hour"] if "reinforce_hour" in each_structure else None)
+                        )
                 
             else:
                 
@@ -160,43 +178,47 @@ class Corporation:
                 
                 for each_pos in starbase_request["Data"]:
 
-                    if "moon_id" in each_pos:
+                    location_data = geographic_data[str(each_pos["system_id"])]
 
-                        moon_request = esi_handler.call("/universe/moons/{moon_id}/", moon_id=each_pos["moon_id"], retries=2)
-                        
-                        if moon_request["Success"]:
-                            moon_name = moon_request["Data"]["name"]
+                    if self.passes_filters(location_data, each_pos["type_id"]):
+
+                        if "moon_id" in each_pos:
+
+                            moon_request = esi_handler.call("/universe/moons/{moon_id}/", moon_id=each_pos["moon_id"], retries=2)
+                            
+                            if moon_request["Success"]:
+                                moon_name = moon_request["Data"]["name"]
+                                
+                            else:
+                                raise Exception(
+                                    "MOONS ERROR\n\nRepsonse Data: {data}\n\nResponse Headers: {headers}".format(
+                                        data=moon_request["Data"],
+                                        headers=moon_request["Headers"]
+                                    )
+                                )
                             
                         else:
-                            raise Exception(
-                                "MOONS ERROR\n\nRepsonse Data: {data}\n\nResponse Headers: {headers}".format(
-                                    data=moon_request["Data"],
-                                    headers=moon_request["Headers"]
-                                )
-                            )
-                        
-                    else:
-                        moon_name = None
+                            moon_name = None
 
-                    self.starbase_data[each_pos["starbase_id"]] = Starbase(
-                        id = each_pos["starbase_id"],
-                        moon_id = each_pos["moon_id"] if "moon_id" in each_pos else None,
-                        moon = moon_name,
-                        type_id = each_pos["type_id"],
-                        type_name = type_data[str(each_pos["type_id"])],
-                        owner_id = self.id,
-                        owner_name = self.name,
-                        owner_ticker = self.ticker,
-                        system_id = each_pos["system_id"],
-                        system_name = geographic_data[str(each_pos["system_id"])]["name"],
-                        constellation_id = geographic_data[str(each_pos["system_id"])]["constellation_id"],
-                        constellation = geographic_data[str(each_pos["system_id"])]["constellation"],
-                        region_id = geographic_data[str(each_pos["system_id"])]["region_id"],
-                        region_name = geographic_data[str(each_pos["system_id"])]["region"],
-                        state = each_pos["state"],
-                        timer = (each_pos["reinforced_until"] if "reinforced_until" in each_pos else None),
-                        unanchor_timer = (each_pos["unanchor_at"] if "unanchor_at" in each_pos else None)
-                    )
+                        self.starbase_data[each_pos["starbase_id"]] = Starbase(
+                            id = each_pos["starbase_id"],
+                            moon_id = each_pos["moon_id"] if "moon_id" in each_pos else None,
+                            moon = moon_name,
+                            type_id = each_pos["type_id"],
+                            type_name = type_data[str(each_pos["type_id"])],
+                            owner_id = self.id,
+                            owner_name = self.name,
+                            owner_ticker = self.ticker,
+                            system_id = each_pos["system_id"],
+                            system_name = location_data["name"],
+                            constellation_id = location_data["constellation_id"],
+                            constellation = location_data["constellation"],
+                            region_id = location_data["region_id"],
+                            region_name = location_data["region"],
+                            state = each_pos["state"],
+                            timer = (each_pos["reinforced_until"] if "reinforced_until" in each_pos else None),
+                            unanchor_timer = (each_pos["unanchor_at"] if "unanchor_at" in each_pos else None)
+                        )
                 
             else:
                 
@@ -222,7 +244,7 @@ class Corporation:
 
         if sov_hub_list_request["Success"]:
 
-            sov_hub_list = [x["id"] for x in sov_hub_list_request["Data"]["sovereignty_hubs"]]
+            sov_hub_list = sov_hub_list_request["Data"]["sovereignty_hubs"]
 
         else:
             
@@ -235,143 +257,148 @@ class Corporation:
         
         for each_sov_hub in sov_hub_list:
 
-            # We could be making quite a few of these requests
-            access_token = auth_handler.getAccessToken(self.source, login_name)
-            
-            if access_token is None:
-                raise Exception("FAILED TO GET ACCESS TOKEN FROM NEUCORE FOR {source}".format(source=self.source))
-            
-            esi_handler = ESI.Handler(self.version_variables, access_token)
+            location_data = geographic_data[str(each_sov_hub["solar_system_id"])]
 
-            sov_hub_request = esi_handler.call("/corporations/{corporation_id}/structures/sovereignty-hubs/{sovereignty_hub_id}/", corporation_id=self.id, sovereignty_hub_id=each_sov_hub, retries=2)
+            if self.passes_filters(location_data, None):
 
-            if sov_hub_request["Success"]:
+                # We could be making quite a few of these requests
+                access_token = auth_handler.getAccessToken(self.source, login_name)
                 
-                sov_hub_data = sov_hub_request["Data"]
+                if access_token is None:
+                    raise Exception("FAILED TO GET ACCESS TOKEN FROM NEUCORE FOR {source}".format(source=self.source))
+                
+                esi_handler = ESI.Handler(self.version_variables, access_token)
 
-                # Some of this we need to build here with the help of our type / geographic data
-                reagent_usage = {
-                    x["type_id"]: {
-                        "Name": type_data[str(x["type_id"])],
-                        "Usage": x["burning_per_hour"]
-                    }
-                    for x in sov_hub_data["reagent_bay"]["reagents"]
-                }
-                reagent_bay = {
-                    x["type_id"]: {
-                        "Name": type_data[str(x["type_id"])],
-                        "Quantity": x["amount"] - (floor((reference_time - datetime.fromisoformat(sov_hub_data["reagent_bay"]["last_updated"])).total_seconds() / 3600) * x["burning_per_hour"])
-                    }
-                    for x in sov_hub_data["reagent_bay"]["reagents"]
-                }
-                reagent_expirations = {
-                    x["type_id"]: {
-                        "Name": type_data[str(x["type_id"])],
-                        "Hours Remaining": floor(reagent_bay[x["type_id"]]["Quantity"] / x["burning_per_hour"]),
-                        "Expires": (reference_time + timedelta(hours=(floor(reagent_bay[x["type_id"]]["Quantity"] / x["burning_per_hour"]) + 1))).replace(minute=0, second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
-                    }
-                    for x in sov_hub_data["reagent_bay"]["reagents"] if x["burning_per_hour"] is not None and x["burning_per_hour"] != 0
-                }
-                upgrades = {
-                    x["type_id"]: {
-                        "Name": type_data[str(x["type_id"])],
-                        "State": x["power_state"]
-                    }
-                    for x in sov_hub_data["upgrades"]
-                }
+                sov_hub_request = esi_handler.call("/corporations/{corporation_id}/structures/sovereignty-hubs/{sovereignty_hub_id}/", corporation_id=self.id, sovereignty_hub_id=each_sov_hub["id"], retries=2)
 
-                # Workforce Configuration - This is a "one of" condition, this is messy but it should work
-                for each_configuration, configuration_data in sov_hub_data["workforce_transport"]["configuration"].items():
-
-                    workforce_configuration = each_configuration
-
-                    if workforce_configuration == "import":
-                        configured_import_sources = {
-                            x["solar_system_id"]: {
-                                "Name": geographic_data[str(x["solar_system_id"])]["name"],
-                                "Region ID": geographic_data[str(x["solar_system_id"])]["region_id"],
-                                "Region": geographic_data[str(x["solar_system_id"])]["region"],
-                                "Amount": 0
-                            }
-                            for x in configuration_data["sources"]
-                        }
-                    else:
-                        configured_import_sources = {}
-
-                    if workforce_configuration == "export":
-                        configured_export = {
-                            "ID": configuration_data["solar_system_id"],
-                            "Name": geographic_data[str(configuration_data["solar_system_id"])]["name"],
-                            "Region ID": geographic_data[str(configuration_data["solar_system_id"])]["region_id"],
-                            "Region": geographic_data[str(configuration_data["solar_system_id"])]["region"],
-                            "Amount": configuration_data["amount"]
-                        }
-                    else:
-                        configured_export = {}
-
-                # Workforce State - This is a "one of" condition, this is messy but it should work
-                for each_state, state_data in sov_hub_data["workforce_transport"]["state"].items():
+                if sov_hub_request["Success"]:
                     
-                    workforce_state = each_state
+                    sov_hub_data = sov_hub_request["Data"]
 
-                    if workforce_state == "import":
-                        current_import_sources = {
-                            x["solar_system_id"]: {
-                                "Name": geographic_data[str(x["solar_system_id"])]["name"],
-                                "Region ID": geographic_data[str(x["solar_system_id"])]["region_id"],
-                                "Region": geographic_data[str(x["solar_system_id"])]["region"],
-                                "Amount": 0
+                    # Some of this we need to build here with the help of our type / geographic data
+                    reagent_usage = {
+                        x["type_id"]: {
+                            "Name": type_data[str(x["type_id"])],
+                            "Usage": x["burning_per_hour"]
+                        }
+                        for x in sov_hub_data["reagent_bay"]["reagents"]
+                    }
+                    reagent_bay = {
+                        x["type_id"]: {
+                            "Name": type_data[str(x["type_id"])],
+                            "Quantity": x["amount"] - (floor((reference_time - datetime.fromisoformat(sov_hub_data["reagent_bay"]["last_updated"])).total_seconds() / 3600) * x["burning_per_hour"])
+                        }
+                        for x in sov_hub_data["reagent_bay"]["reagents"]
+                    }
+                    reagent_expirations = {
+                        x["type_id"]: {
+                            "Name": type_data[str(x["type_id"])],
+                            "Hours Remaining": floor(reagent_bay[x["type_id"]]["Quantity"] / x["burning_per_hour"]),
+                            "Expires": (reference_time + timedelta(hours=(floor(reagent_bay[x["type_id"]]["Quantity"] / x["burning_per_hour"]) + 1))).replace(minute=0, second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
+                        }
+                        for x in sov_hub_data["reagent_bay"]["reagents"] if x["burning_per_hour"] is not None and x["burning_per_hour"] != 0
+                    }
+                    upgrades = {
+                        x["type_id"]: {
+                            "Name": type_data[str(x["type_id"])],
+                            "State": x["power_state"]
+                        }
+                        for x in sov_hub_data["upgrades"]
+                    }
+
+                    # Workforce Configuration - This is a "one of" condition, this is messy but it should work
+                    for each_configuration, configuration_data in sov_hub_data["workforce_transport"]["configuration"].items():
+
+                        workforce_configuration = each_configuration
+
+                        if workforce_configuration == "import":
+                            configured_import_sources = {
+                                x["solar_system_id"]: {
+                                    "Name": geographic_data[str(x["solar_system_id"])]["name"],
+                                    "Region ID": geographic_data[str(x["solar_system_id"])]["region_id"],
+                                    "Region": geographic_data[str(x["solar_system_id"])]["region"],
+                                    "Amount": 0
+                                }
+                                for x in configuration_data["sources"]
                             }
-                            for x in state_data["sources"]
-                        }
-                    else:
-                        current_import_sources = {}
+                        else:
+                            configured_import_sources = {}
 
-                    if workforce_state == "export":
-                        current_export = {
-                            "ID": state_data["solar_system_id"],
-                            "Name": geographic_data[str(state_data["solar_system_id"])]["name"],
-                            "Region ID": geographic_data[str(state_data["solar_system_id"])]["region_id"],
-                            "Region": geographic_data[str(state_data["solar_system_id"])]["region"],
-                            "Amount": state_data["amount"]
-                        }
-                    else:
-                        current_export = {}
+                        if workforce_configuration == "export":
+                            configured_export = {
+                                "ID": configuration_data["solar_system_id"],
+                                "Name": geographic_data[str(configuration_data["solar_system_id"])]["name"],
+                                "Region ID": geographic_data[str(configuration_data["solar_system_id"])]["region_id"],
+                                "Region": geographic_data[str(configuration_data["solar_system_id"])]["region"],
+                                "Amount": configuration_data["amount"]
+                            }
+                        else:
+                            configured_export = {}
 
-                # Finally Building our SovHub Object
-                self.sov_data[sov_hub_data["solar_system_id"]] = SovHub(
-                    id = sov_hub_data["id"],
-                    owner_id = self.id,
-                    owner_name = self.name,
-                    owner_ticker = self.ticker,
-                    system_id = sov_hub_data["solar_system_id"],
-                    system = geographic_data[str(sov_hub_data["solar_system_id"])]["name"],
-                    constellation_id = geographic_data[str(sov_hub_data["solar_system_id"])]["constellation_id"],
-                    constellation = geographic_data[str(sov_hub_data["solar_system_id"])]["constellation"],
-                    region_id = geographic_data[str(sov_hub_data["solar_system_id"])]["region_id"],
-                    region = geographic_data[str(sov_hub_data["solar_system_id"])]["region"],
-                    fuel_acl_id = sov_hub_data["fuel_access_list_id"] if "fuel_access_list_id" in sov_hub_data else None,
-                    reagent_bay = reagent_bay,
-                    reagent_usage = reagent_usage,
-                    reagent_expirations = reagent_expirations,
-                    resources = sov_hub_data["resources"],
-                    workforce_configuration = workforce_configuration, 
-                    configured_import_sources = configured_import_sources,
-                    configured_export = configured_export,
-                    workforce_state = workforce_state, 
-                    current_import_sources = current_import_sources,
-                    current_export = current_export,
-                    upgrades = upgrades
-                )
+                    # Workforce State - This is a "one of" condition, this is messy but it should work
+                    for each_state, state_data in sov_hub_data["workforce_transport"]["state"].items():
+                        
+                        workforce_state = each_state
 
-            else:
-                
-                raise Exception(
-                    "SOV HUB ERROR\n\nRepsonse Data: {data}\n\nResponse Headers: {headers}".format(
-                        data=sov_hub_request["Data"],
-                        headers=sov_hub_request["Headers"]
+                        if workforce_state == "import":
+                            current_import_sources = {
+                                x["solar_system_id"]: {
+                                    "Name": geographic_data[str(x["solar_system_id"])]["name"],
+                                    "Region ID": geographic_data[str(x["solar_system_id"])]["region_id"],
+                                    "Region": geographic_data[str(x["solar_system_id"])]["region"],
+                                    "Amount": 0
+                                }
+                                for x in state_data["sources"]
+                            }
+                        else:
+                            current_import_sources = {}
+
+                        if workforce_state == "export":
+                            current_export = {
+                                "ID": state_data["solar_system_id"],
+                                "Name": geographic_data[str(state_data["solar_system_id"])]["name"],
+                                "Region ID": geographic_data[str(state_data["solar_system_id"])]["region_id"],
+                                "Region": geographic_data[str(state_data["solar_system_id"])]["region"],
+                                "Amount": state_data["amount"]
+                            }
+                        else:
+                            current_export = {}
+
+                    # Finally Building our SovHub Object
+                    self.sov_data[sov_hub_data["solar_system_id"]] = SovHub(
+                        id = sov_hub_data["id"],
+                        owner_id = self.id,
+                        owner_name = self.name,
+                        owner_ticker = self.ticker,
+                        system_id = sov_hub_data["solar_system_id"],
+                        system = location_data["name"],
+                        constellation_id = location_data["constellation_id"],
+                        constellation = location_data["constellation"],
+                        region_id = location_data["region_id"],
+                        region = location_data["region"],
+                        system_security = location_data["security_status"],
+                        fuel_acl_id = sov_hub_data["fuel_access_list_id"] if "fuel_access_list_id" in sov_hub_data else None,
+                        reagent_bay = reagent_bay,
+                        reagent_usage = reagent_usage,
+                        reagent_expirations = reagent_expirations,
+                        resources = sov_hub_data["resources"],
+                        workforce_configuration = workforce_configuration, 
+                        configured_import_sources = configured_import_sources,
+                        configured_export = configured_export,
+                        workforce_state = workforce_state, 
+                        current_import_sources = current_import_sources,
+                        current_export = current_export,
+                        upgrades = upgrades
                     )
-                )
+
+                else:
+                    
+                    raise Exception(
+                        "SOV HUB ERROR\n\nRepsonse Data: {data}\n\nResponse Headers: {headers}".format(
+                            data=sov_hub_request["Data"],
+                            headers=sov_hub_request["Headers"]
+                        )
+                    )
             
         # Building Import Amounts
         for each_system, each_sov_hub in self.sov_data.items():
@@ -444,6 +471,28 @@ class Corporation:
                             type_name = type_data[str(each_asset["type_id"])]
                             self.structure_data[each_asset["location_id"]].service_modules[slot] = type_name
 
+                        if each_asset["location_flag"].startswith("FighterTube"):
+
+                            slot = int(each_asset["location_flag"].removeprefix("FighterTube"))
+                            type_name = type_data[str(each_asset["type_id"])]
+                            self.structure_data[each_asset["location_id"]].fighter_tubes[slot] = type_name
+
+                        if each_asset["location_flag"] == "FighterBay":
+
+                            if each_asset["type_id"] not in self.structure_data[each_asset["location_id"]].fighter_bay:
+
+                                self.structure_data[each_asset["location_id"]].fighter_bay[each_asset["type_id"]] = {"Name": type_data[str(each_asset["type_id"])], "Quantity": 0}
+
+                            self.structure_data[each_asset["location_id"]].fighter_bay[each_asset["type_id"]]["Quantity"] += each_asset["quantity"]
+
+                        if each_asset["location_flag"] == "Cargo":
+
+                            if each_asset["type_id"] not in self.structure_data[each_asset["location_id"]].ammo_hold:
+
+                                self.structure_data[each_asset["location_id"]].ammo_hold[each_asset["type_id"]] = {"Name": type_data[str(each_asset["type_id"])], "Quantity": 0}
+
+                            self.structure_data[each_asset["location_id"]].ammo_hold[each_asset["type_id"]]["Quantity"] += each_asset["quantity"]
+
                         if each_asset["location_flag"] == "StructureFuel":
 
                             if each_asset["type_id"] == 16273:
@@ -483,8 +532,11 @@ class Corporation:
             
             current_page += 1
 
-    def usage_calculations(self):
+    def process_asset_data(self):
 
+        industry_excluded_structures = []
+
+        # Calculate Reagent Expiry and Populate Industry Rigs for Citadels
         for each_structure in self.structure_data:
 
             current = self.structure_data[each_structure]
@@ -507,6 +559,21 @@ class Corporation:
 
                 current.reagent_expiry = (reference_time + timedelta(hours=(minimum_time + 1))).replace(minute=0, second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
 
+            # Industry Rigs
+            current.industry_rigs = {x: y for x, y in current.rigs.items() if any(term in y for term in current.industry_rig_terms)}
+
+            if str(current.type_id) in self.app_variables.industry_types and not current.industry_rigs:
+                industry_excluded_structures.append(each_structure)
+
+        # Remove Industry Structures (and any associated extractions) that don't have any Industry Rigs
+        for each_excluded in industry_excluded_structures:
+
+            del self.structure_data[each_excluded]
+
+            if each_excluded in self.extractions:
+                del self.extractions[each_excluded]
+
+        # Calculate Fuel Expiry and Strontium Hours for Starbases
         for each_starbase in self.starbase_data:
 
             current = self.starbase_data[each_starbase]

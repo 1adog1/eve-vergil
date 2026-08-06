@@ -34,6 +34,11 @@ class AppConfig:
         TargetAlliances,
         TargetCorps,
         TargetExclusions,
+        ExcludedTypes,
+        IndustryTypes,
+        RegionFilter,
+        ConstellationFilter,
+        SystemFilter,
         ReportTitle,
         WebhookPlatform,
         WebhookURL
@@ -42,6 +47,11 @@ class AppConfig:
         self.target_alliances = cleanup_config(TargetAlliances).replace(" ", "").split(",")
         self.target_corps = cleanup_config(TargetCorps).replace(" ", "").split(",")
         self.target_exclusions = cleanup_config(TargetExclusions).replace(" ", "").split(",")
+        self.excluded_types = cleanup_config(ExcludedTypes).replace(" ", "").split(",") if ExcludedTypes is not None else []
+        self.industry_types = cleanup_config(IndustryTypes).replace(" ", "").split(",") if IndustryTypes is not None else []
+        self.region_filter = cleanup_config(RegionFilter).replace(" ", "").split(",") if RegionFilter is not None else []
+        self.constellation_filter = cleanup_config(ConstellationFilter).replace(" ", "").split(",") if ConstellationFilter is not None else []
+        self.system_filter = cleanup_config(SystemFilter).replace(" ", "").split(",") if SystemFilter is not None else []
         self.report_title = cleanup_config(ReportTitle)
         self.webhook_platform = cleanup_config(WebhookPlatform)
         self.webhook_url = cleanup_config(WebhookURL)
@@ -52,6 +62,18 @@ class AppConfig:
             self.target_corps.remove("")
         if "" in self.target_exclusions:
             self.target_exclusions.remove("")
+        if "" in self.excluded_types:
+            self.excluded_types.remove("")
+        if "" in self.industry_types:
+            self.industry_types.remove("")
+        if "" in self.region_filter:
+            self.region_filter.remove("")
+        if "" in self.constellation_filter:
+            self.constellation_filter.remove("")
+        if "" in self.system_filter:
+            self.system_filter.remove("")
+
+        self.location_filter_active = (self.region_filter or self.constellation_filter or self.system_filter)
 
 class Versioning:
 
@@ -104,6 +126,11 @@ class Config:
                 TargetAlliances = config["App"]["TargetAlliances"],
                 TargetCorps = config["App"]["TargetCorps"],
                 TargetExclusions = config["App"]["TargetExclusions"],
+                ExcludedTypes = config["App"]["ExcludedTypes"],
+                IndustryTypes = config["App"]["IndustryTypes"],
+                RegionFilter = config["App"]["RegionFilter"],
+                ConstellationFilter = config["App"]["ConstellationFilter"],
+                SystemFilter = config["App"]["SystemFilter"],
                 ReportTitle = config["App"]["ReportTitle"],
                 WebhookPlatform = config["App"]["WebhookPlatform"],
                 WebhookURL = config["App"]["WebhookURL"]
@@ -124,6 +151,11 @@ class Config:
                 TargetAlliances = os.environ["ENV_STRUCTURE_OVERVIEW_TARGET_ALLIANCES"],
                 TargetCorps = os.environ["ENV_STRUCTURE_OVERVIEW_TARGET_CORPS"],
                 TargetExclusions = os.environ["ENV_STRUCTURE_OVERVIEW_TARGET_EXCLUSIONS"],
+                ExcludedTypes = os.environ["ENV_STRUCTURE_OVERVIEW_EXCLUDED_TYPES"] if "ENV_STRUCTURE_OVERVIEW_EXCLUDED_TYPES" in os.environ else None,
+                IndustryTypes = os.environ["ENV_STRUCTURE_OVERVIEW_INDUSTRY_TYPES"] if "ENV_STRUCTURE_OVERVIEW_INDUSTRY_TYPES" in os.environ else None,
+                RegionFilter = os.environ["ENV_STRUCTURE_OVERVIEW_REGION_FILTER"] if "ENV_STRUCTURE_OVERVIEW_REGION_FILTER" in os.environ else None,
+                ConstellationFilter = os.environ["ENV_STRUCTURE_OVERVIEW_CONSTELLATION_FILTER"] if "ENV_STRUCTURE_OVERVIEW_CONSTELLATION_FILTER" in os.environ else None,
+                SystemFilter = os.environ["ENV_STRUCTURE_OVERVIEW_SYSTEM_FILTER"] if "ENV_STRUCTURE_OVERVIEW_SYSTEM_FILTER" in os.environ else None,
                 ReportTitle = os.environ["ENV_STRUCTURE_OVERVIEW_REPORT_TITLE"] if "ENV_STRUCTURE_OVERVIEW_REPORT_TITLE" in os.environ else None,
                 WebhookPlatform = os.environ["ENV_STRUCTURE_OVERVIEW_WEBHOOK_PLATFORM"] if "ENV_STRUCTURE_OVERVIEW_WEBHOOK_PLATFORM" in os.environ else None,
                 WebhookURL = os.environ["ENV_STRUCTURE_OVERVIEW_WEBHOOK_URL"] if "ENV_STRUCTURE_OVERVIEW_WEBHOOK_URL" in os.environ else None
